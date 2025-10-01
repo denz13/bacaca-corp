@@ -119,16 +119,16 @@ License: You must have a valid license purchased only from themeforest(the above
                                         </div>
                                         <label class="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 opacity-70" for="remember-me">Remember me</label>
                                     </div>
-                                    <a class="opacity-70" href="{{ route('forgot-password') }}">Forgot Password?</a>
+                                    <!-- <a class="opacity-70" href="{{ route('forgot-password') }}">Forgot Password?</a> -->
                                 </div>
                             </form>
                             <div class="mt-5 text-center xl:mt-10 xl:text-left">
                                 <button type="submit" form="login-form" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-(--color)/20 border-(--color)/60 text-(--color) hover:bg-(--color)/5 [--color:var(--color-primary)] h-10 login-button box w-full px-4 py-5" onclick="document.querySelector('form').submit();">
                                     Login
                                 </button>
-                                <a class="[--color:var(--color-foreground)] cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 text-(--color) hover:bg-(--color)/5 bg-background border-(--color)/20 h-10 box mt-4 w-full px-4 py-5" href="{{ route('register') }}">
+                                <!-- <a class="[--color:var(--color-foreground)] cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 text-(--color) hover:bg-(--color)/5 bg-background border-(--color)/20 h-10 box mt-4 w-full px-4 py-5" href="{{ route('register') }}">
                                     Register
-                                </a>
+                                </a> -->
                             </div>
                             <!-- <div class="mt-10 text-center opacity-70 xl:mt-24 xl:text-left">
                                 By signin up, you agree to our

@@ -8,13 +8,13 @@
 @section('content')
     {{-- @can('view disbursement voucher') --}}
         <!-- page title -->
-        <livewire:admin-account.admin-account/>
+        <livewire:work-schedule.work-schedule/>
     {{-- @else
         <div class="flex items-center p-4 text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-red-800/10 dark:border-red-800 dark:text-red-500"
             role="alert">
             <i data-lucide="alert-circle" class="size-4 me-2"></i>
             <div>
-                You don't have permission to view Admin Account......
+                You don't have permission to view Work Schedule......
             </div>
         </div>
     @endcan --}}

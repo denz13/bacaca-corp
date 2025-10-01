@@ -5,19 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\students;
+use App\Models\User;
 
-class registration_request extends Model
+class work_schedule extends Model
 {
     //
     use HasFactory, SoftDeletes;
-    protected $table = 'registration_request';
+    protected $table = 'work_schedule';
     protected $primaryKey = 'id';
-    protected $fillable = ['students_id', 'remarks','status'];
+    protected $fillable = ['users_id', 'day', 'time_in','time_out', 'status'];
     public $timestamps = true;
 
-    public function students()
+    // Relation to users
+    public function users()
     {
-        return $this->belongsTo(students::class, 'students_id');
+        return $this->belongsTo(User::class, 'users_id');
     }
 }

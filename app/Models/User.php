@@ -85,4 +85,12 @@ class User extends Authenticatable
     {
         return $this->morphMany(\App\Models\ActionLog::class, 'trackable');
     }
+
+    /**
+     * Get the work schedules for the user.
+     */
+    public function workSchedules()
+    {
+        return $this->hasMany(\App\Models\work_schedule::class, 'users_id');
+    }
 }

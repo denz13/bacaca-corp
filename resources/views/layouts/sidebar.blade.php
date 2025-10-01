@@ -49,57 +49,17 @@
                         <li>
                            <x-menu.sidebar-submenu-item href="action-center" icon="panel-bottom-close" :text="auth('students')->check() ? __('Notification') : __('Action Center')" />
                         </li>
-                        @auth('students')
-                        <li>
-                           <x-menu.sidebar-submenu-item href="display-room" icon="panel-bottom-close" :text="__('Room Campaign')" />
-                        </li>
-                        <li>
-                           <x-menu.sidebar-submenu-item href="display-meeting-abanse" icon="panel-bottom-close" :text="__('Meeting de Abanse')" />
-                        </li>
+                       
                         <li>
                            <x-menu.sidebar-submenu-item href="calendar" icon="panel-bottom-close" :text="__('Calendar')" />
                         </li>
-                        <li>
-                            <x-menu.sidebar-submenu-item href="on-going-election" icon="panel-bottom-close" :text="__('On Going Election')" />
-                        </li>
-                        @endauth
-                        @auth('students')
-                        <li x-data="sideMenuDropdown({ open: {{ request()->is('candidacy-management*') ? 'true' : 'false' }} })">
-                            <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
-                                <i data-lucide="square-kanban" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
-                                <div class="side-menu__link__title">Candidacy</div>
-                                <i data-lucide="chevron-down" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__chevron transition" :class="{ 'rotate-180': open }"></i>
-                            </a>
-                            <ul class="{{ request()->is('candidacy-management*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
-                                <li>
-                                    <x-menu.sidebar-submenu-item href="candidacy-management" icon="panel-bottom-close" :text="__('Apply Now')" />
-                                </li>
-                            </ul>
-                        </li>
-                        @endauth
-                        @auth('web')
-                        <li x-data="sideMenuDropdown({ open: {{ request()->is('voting-exclusive*') || request()->is('on-going-election*') ? 'true' : 'false' }} })">
-                            <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
-                                <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
-                                <div class="side-menu__link__title">Vote Management</div>
-                                <i data-lucide="chevron-down" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__chevron transition" :class="{ 'rotate-180': open }"></i>
-                            </a>
-                            <ul class="{{ request()->is('voting-exclusive*') || request()->is('on-going-election*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
-                                <li>
-                                    <x-menu.sidebar-submenu-item href="voting-exclusive" icon="panel-bottom-close" :text="__('Voting Exclusive')" />
-                                </li>
-                                <li>
-                                    <x-menu.sidebar-submenu-item href="on-going-election" icon="panel-bottom-close" :text="__('On Going Election')" />
-                                </li>
-                            </ul>
-                        </li>
-                        @endauth
-                        @auth('web')
+                       
+                    
                         <li class="side-menu__group-label">
                             APPS
                         </li>
                        
-                        <li x-data="sideMenuDropdown({ open: {{ request()->is('department-management*') || request()->is('course-management*') || request()->is('schoolyear-semester*') || request()->is('position*') || request()->is('set-signatory*') || request()->is('room-to-room*') || request()->is('meeting-abanse*') ? 'true' : 'false' }} })">
+                        <!-- <li x-data="sideMenuDropdown({ open: {{ request()->is('department-management*') || request()->is('course-management*') || request()->is('schoolyear-semester*') || request()->is('position*') || request()->is('set-signatory*') || request()->is('room-to-room*') || request()->is('meeting-abanse*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="square-kanban" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
                                 <div class="side-menu__link__title">Manage Information</div>
@@ -128,27 +88,22 @@
                                     <x-menu.sidebar-submenu-item href="meeting-abanse" icon="panel-bottom-close" :text="__('Meeting de Abanse')" />
                                 </li>
                             </ul>
-                        </li>
+                        </li> -->
                         <li x-data="sideMenuDropdown({ open: {{ request()->is('registration-request*') || request()->is('registration-rejected*') || request()->is('registration-approved*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
-                                <div class="side-menu__link__title">Registration Request</div>
+                                <div class="side-menu__link__title">Schedule Management</div>
                                 <i data-lucide="chevron-down" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__chevron transition" :class="{ 'rotate-180': open }"></i>
                             </a>
                             <ul class="{{ request()->is('registration-request*') || request()->is('registration-rejected*') || request()->is('registration-approved*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
+                               
                                 <li>
-                                    <x-menu.sidebar-submenu-item href="registration-request" icon="panel-bottom-close" :text="__('Student Request')" />
-                                </li>
-                                <li>
-                                    <x-menu.sidebar-submenu-item href="registration-rejected" icon="panel-bottom-close" :text="__('Student Rejected')" />
-                                </li>
-                                <li>
-                                    <x-menu.sidebar-submenu-item href="registration-approved" icon="panel-bottom-close" :text="__('Student Approved')" />
+                                    <x-menu.sidebar-submenu-item href="work-schedule" icon="panel-bottom-close" :text="__('Work Schedule')" />
                                 </li>
                             </ul>
                         </li>
                         
-                        <li x-data="sideMenuDropdown({ open: {{ request()->is('admin-account*') || request()->is('student-account*') || request()->is('activity-logs*') ? 'true' : 'false' }} })">
+                        <!-- <li x-data="sideMenuDropdown({ open: {{ request()->is('admin-account*') || request()->is('student-account*') || request()->is('activity-logs*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
                                 <div class="side-menu__link__title">User Management</div>
@@ -165,8 +120,8 @@
                                     <x-menu.sidebar-submenu-item href="activity-logs" icon="panel-bottom-close" :text="__('Activity Logs')" />
                                 </li>
                             </ul>
-                        </li>
-                        <li x-data="sideMenuDropdown({ open: {{ request()->is('candidates-position*') || request()->is('candidates-election*') || request()->is('list-students-account*') || request()->is('list-admin-account*') ? 'true' : 'false' }} })">
+                        </li> -->
+                        <!-- <li x-data="sideMenuDropdown({ open: {{ request()->is('candidates-position*') || request()->is('candidates-election*') || request()->is('list-students-account*') || request()->is('list-admin-account*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
                                 <div class="side-menu__link__title">Generate Report</div>
@@ -186,16 +141,16 @@
                                     <x-menu.sidebar-submenu-item href="list-admin-account" icon="panel-bottom-close" :text="__('Admin Account')" />
                                 </li>
                             </ul>
-                        </li>
+                        </li> -->
                         <li x-data="sideMenuDropdown({ open: {{ request()->is('partylist-management*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
-                                <div class="side-menu__link__title">Partylist Management</div>
+                                <div class="side-menu__link__title">Payroll Management</div>
                                 <i data-lucide="chevron-down" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__chevron transition" :class="{ 'rotate-180': open }"></i>
                             </a>
                             <ul class="{{ request()->is('partylist-management*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
                                 <li>
-                                    <x-menu.sidebar-submenu-item href="partylist-management" icon="panel-bottom-close" :text="__('Partylist Management')" />
+                                    <x-menu.sidebar-submenu-item href="partylist-management" icon="panel-bottom-close" :text="__('Create Payroll')" />
                                 </li>
                             </ul>
                         </li>
@@ -205,7 +160,7 @@
                         <li>
                            <x-menu.sidebar-submenu-item href="system-settings" icon="panel-bottom-close" :text="__('System Settings')" />
                         </li>
-                        @endauth
+                      
                         
                         <!-- <li>
                             <a href="rubick-side-menu-post.html" class="side-menu__link ">
