@@ -142,15 +142,15 @@
                                 </li>
                             </ul>
                         </li> -->
-                        <li x-data="sideMenuDropdown({ open: {{ request()->is('partylist-management*') ? 'true' : 'false' }} })">
+                        <li x-data="sideMenuDropdown({ open: {{ request()->is('create-payroll*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
                                 <div class="side-menu__link__title">Payroll Management</div>
                                 <i data-lucide="chevron-down" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__chevron transition" :class="{ 'rotate-180': open }"></i>
                             </a>
-                            <ul class="{{ request()->is('partylist-management*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
+                            <ul class="{{ request()->is('create-payroll*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
                                 <li>
-                                    <x-menu.sidebar-submenu-item href="partylist-management" icon="panel-bottom-close" :text="__('Create Payroll')" />
+                                    <x-menu.sidebar-submenu-item href="create-payroll" icon="panel-bottom-close" :text="__('Create Payroll')" />
                                 </li>
                             </ul>
                         </li>

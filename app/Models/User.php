@@ -26,6 +26,8 @@ class User extends Authenticatable
         'is_online',
         'status',
         'profile_image',
+        'employee_id',
+        'designation_id',
     ];
 
     /**
@@ -92,5 +94,13 @@ class User extends Authenticatable
     public function workSchedules()
     {
         return $this->hasMany(\App\Models\work_schedule::class, 'users_id');
+    }
+
+    /**
+     * Get the attendance records for the user.
+     */
+    public function attendance()
+    {
+        return $this->hasMany(\App\Models\attendance::class, 'users_id');
     }
 }
