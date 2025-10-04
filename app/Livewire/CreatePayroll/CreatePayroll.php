@@ -5,6 +5,7 @@ namespace App\Livewire\CreatePayroll;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\User;
+use App\Models\deduction;
 
 class CreatePayroll extends Component
 {
@@ -19,14 +20,47 @@ class CreatePayroll extends Component
     
     // Process Payroll Modal
     public bool $showProcessPayrollModal = false;
-    public ?int $selectedUserId = null;
-    public ?string $selectedUserName = null;
+  public ?int $selectedUserId = null;
+  public ?string $selectedUserName = null;
+    
+    // Deduction selection
+    public array $selectedDeductions = [];
+    public array $deductionAmounts = [];
+    public ?int $selectedDeductionId = null;
 
     public function openProcessPayrollModal(int $userId, string $userName): void
     {
         $this->selectedUserId = $userId;
         $this->selectedUserName = $userName;
         $this->showProcessPayrollModal = true;
+        
+        // Reset deduction selections
+        $this->selectedDeductions = [];
+        $this->deductionAmounts = [];
+        $this->selectedDeductionId = null;
+    }
+    
+    public function addDeduction(): void
+    {
+        if ($this->selectedDeductionId) {
+            $deduction = deduction::find($this->selectedDeductionId);
+            if ($deduction && !in_array($this->selectedDeductionId, $this->selectedDeductions)) {
+                $this->selectedDeductions[] = $this->selectedDeductionId;
+                $this->deductionAmounts[$this->selectedDeductionId] = $deduction->amount;
+                $this->selectedDeductionId = null; // Reset dropdown
+            }
+        }
+    }
+    
+    public function removeDeduction(int $deductionId): void
+    {
+        $this->selectedDeductions = array_filter($this->selectedDeductions, fn($id) => $id !== $deductionId);
+        unset($this->deductionAmounts[$deductionId]);
+    }
+    
+    public function updateDeductionAmount(int $deductionId, float $amount): void
+    {
+        $this->deductionAmounts[$deductionId] = $amount;
     }
 
     public function render()
@@ -61,8 +95,12 @@ class CreatePayroll extends Component
             $users = $usersQuery->orderBy('name')->paginate($perPage);
         }
 
+        // Get all deductions for the dropdown
+        $deductions = deduction::where('status', 'active')->get();
+
         return view('livewire.create-payroll.create-payroll', [
             'users' => $users,
+            'deductions' => $deductions,
         ]);
     }
 }

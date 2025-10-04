@@ -321,26 +321,95 @@
             <div class="border rounded-lg p-4">
                 <h3 class="font-medium mb-3 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-danger">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h9a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
                     Add Deduction
                 </h3>
-                <div class="grid gap-3">
-                    <div>
-                        <label class="text-sm font-medium">Deduction Type</label>
-                        <select class="w-full mt-1 h-10 rounded-md border bg-background px-3 py-2">
-                            <option>SSS</option>
-                            <option>PhilHealth</option>
-                            <option>Pag-IBIG</option>
-                            <option>Tax</option>
-                            <option>Other</option>
+                
+                <!-- Add Deduction Form -->
+                <div class="flex gap-3 mb-4">
+                    <div class="flex-1">
+                        <select wire:model="selectedDeductionId" class="w-full h-10 rounded-md border bg-background px-3 py-2">
+                            <option value="">Select Deduction Type</option>
+                            @forelse($deductions as $deduction)
+                                <option value="{{ $deduction->id }}">
+                                    {{ $deduction->description }} - ₱{{ number_format($deduction->amount, 2) }}
+                                </option>
+                            @empty
+                                <option disabled>No deductions available</option>
+                            @endforelse
                         </select>
                     </div>
-                    <div>
-                        <label class="text-sm font-medium">Amount</label>
-                        <input type="number" class="w-full mt-1 h-10 rounded-md border bg-background px-3 py-2" placeholder="0.00">
-                    </div>
+                    <button 
+                        wire:click="addDeduction" 
+                        :disabled="!selectedDeductionId"
+                        class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary/20 border-primary/60 text-primary hover:bg-primary/5 h-10 px-4 py-2"
+                        type="button"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14"/>
+                            <path d="M12 5v14"/>
+                        </svg>
+                        Add
+                    </button>
                 </div>
+                
+                <!-- Selected Deductions Table -->
+                @if(count($selectedDeductions) > 0)
+                    <div class="border border-foreground/10 rounded-md overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-foreground/5 border-b border-foreground/10">
+                                    <tr>
+                                        <th class="p-3 text-left font-medium">Description</th>
+                                        <th class="p-3 text-center font-medium w-32">Amount</th>
+                                        <th class="p-3 text-center font-medium w-20">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($deductions->whereIn('id', $selectedDeductions) as $deduction)
+                                        <tr class="border-b border-foreground/5">
+                                            <td class="p-3">
+                                                <span class="font-medium">{{ $deduction->description }}</span>
+                                            </td>
+                                            <td class="p-3 text-center">
+                                       <input 
+                                            type="number" 
+                                            step="0.01"
+                                            value="{{ $deductionAmounts[$deduction->id] ?? $deduction->amount }}"
+                                            wire:change="updateDeductionAmount({{ $deduction->id }}, $event.target.value)"
+                                            class="w-28 h-8 text-sm rounded border bg-background px-2 py-1 border-foreground/20 focus:ring-2 focus:ring-primary focus:border-primary text-center"
+                                            min="0" readonly
+                                        />
+                                            </td>
+                                            <td class="p-3 text-center">
+                                                <button 
+                                                    wire:click="removeDeduction({{ $deduction->id }})"
+                                                    type="button"
+                                                    class="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-md border border-foreground/20 bg-background hover:bg-foreground/5 text-danger hover:text-danger"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M18 6L6 18M6 6l12 12"/>
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="bg-foreground/5 border-t border-foreground/10">
+                                    <tr>
+                                        <td class="p-3 font-medium text-right" colspan="2">
+                                            Total Deductions:
+                                        </td>
+                                        <td class="p-3 text-center font-medium text-danger">
+                                            ₱{{ number_format(array_sum($deductionAmounts), 2) }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <!-- Add Earnings Section -->
