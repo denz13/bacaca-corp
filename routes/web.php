@@ -12,6 +12,8 @@ use App\Http\Controllers\otp\OtpController;
 use App\Http\Controllers\appointment\AppointmentController;
 use App\Http\Controllers\register\RegisterController;
 use App\Http\Controllers\pdf\PdfController;
+use App\Livewire\Earnings\EarningsManager;
+use App\Livewire\Deduction\DeductionManager;
 
 Route::get('/', [LoginController::class, 'login'])->name('login');
 Route::post('/authenticate', [LoginController::class, 'authenticate'])->name('authenticate');
@@ -44,6 +46,16 @@ Route::get('/pdf/admin-account', [PdfController::class, 'adminAccount'])->name('
 Route::get('/dashboard', function() {
     return view('dashboard.index-dashboard');
 })->name('dashboard');
+
+// Earnings Management
+Route::get('/earnings-management', function() {
+    return view('earnings.earnings-manager-page');
+})->name('earnings.management');
+
+// Deduction Management
+Route::get('/deduction-management', function() {
+    return view('deduction.deduction-manager-page');
+})->name('deduction.management');
 
 // Notification Routes
 Route::post('/notifications/{notification}/mark-read', function($notificationId) {

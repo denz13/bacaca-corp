@@ -423,19 +423,102 @@
                 </h3>
                 <div class="grid gap-3">
                     <div>
-                        <label class="text-sm font-medium">Earnings Type</label>
-                        <select class="w-full mt-1 h-10 rounded-md border bg-background px-3 py-2">
-                            <option>Base Salary</option>
-                            <option>Overtime Pay</option>
-                            <option>Bonus</option>
-                            <option>Allowance</option>
-                            <option>Other</option>
-                        </select>
+                        <label class="text-sm font-medium">Earning</label>
+                        <div class="grid md:grid-cols-3 gap-3 mt-1">
+                            <select wire:model="selectedEarningId" class="h-10 rounded-md border bg-background px-3 py-2">
+                                <option value="">Select earning</option>
+                                @forelse($earningsList as $earning)
+                                    <option value="{{ $earning->id }}">{{ $earning->earnings }}</option>
+                                @empty
+                                    <option disabled>No earnings available</option>
+                                @endforelse
+                            </select>
+                            <input 
+                                type="text" 
+                                wire:model.defer="earningDescriptionInput" 
+                                class="h-10 rounded-md border bg-background px-3 py-2" 
+                                placeholder="Description (optional)"
+                            />
+                            <div class="flex gap-3">
+                                <input 
+                                    type="number" 
+                                    step="0.01"
+                                    min="0"
+                                    wire:model.defer="earningAmountInput" 
+                                    class="h-10 rounded-md border bg-background px-3 py-2 w-full" 
+                                    placeholder="Amount"
+                                />
+                                <button 
+                                    wire:click="addEarningFromForm"
+                                    type="button"
+                                    class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-success/20 border-success/60 text-success hover:bg-success/5 h-10 px-4 py-2"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-sm font-medium">Amount</label>
-                        <input type="number" class="w-full mt-1 h-10 rounded-md border bg-background px-3 py-2" placeholder="0.00">
-                    </div>
+
+                    @if(count($chosenEarnings) > 0)
+                        <div class="border border-foreground/10 rounded-md overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-foreground/5 border-b border-foreground/10">
+                                        <tr>
+                                            <th class="p-3 text-left font-medium">Description</th>
+                                            <th class="p-3 text-center font-medium w-32">Amount</th>
+                                            <th class="p-3 text-center font-medium w-20">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($earningsList->whereIn('id', $chosenEarnings) as $earning)
+                                            <tr class="border-b border-foreground/5">
+                                                <td class="p-3">
+                                                    <input 
+                                                        type="text"
+                                                        value="{{ $earningsDescriptions[$earning->id] ?? $earning->earnings }}"
+                                                        wire:change="updateEarningDescription({{ $earning->id }}, $event.target.value)"
+                                                        class="w-full h-8 text-sm rounded border bg-background px-2 py-1 border-foreground/20 focus:ring-2 focus:ring-primary focus:border-primary"
+                                                    />
+                                                </td>
+                                                <td class="p-3 text-center">
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01"
+                                                        value="{{ $earningsAmounts[$earning->id] ?? 0 }}"
+                                                        wire:change="updateEarningAmount({{ $earning->id }}, $event.target.value)"
+                                                        class="w-28 h-8 text-sm rounded border bg-background px-2 py-1 border-foreground/20 focus:ring-2 focus:ring-primary focus:border-primary text-center"
+                                                        min="0"
+                                                    />
+                                                </td>
+                                                <td class="p-3 text-center">
+                                                    <button 
+                                                        wire:click="removeEarning({{ $earning->id }})"
+                                                        type="button"
+                                                        class="cursor-pointer inline-flex items-center justify-center h-8 w-8 rounded-md border border-foreground/20 bg-background hover:bg-foreground/5 text-danger hover:text-danger"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M18 6L6 18M6 6l12 12"/>
+                                                        </svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot class="bg-foreground/5 border-t border-foreground/10">
+                                        <tr>
+                                            <td class="p-3 font-medium text-right" colspan="2">
+                                                Total Earnings:
+                                            </td>
+                                            <td class="p-3 text-center font-medium text-success">
+                                                ₱{{ number_format(array_sum($earningsAmounts), 2) }}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
