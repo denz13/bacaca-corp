@@ -109,7 +109,7 @@
                             </div>
                             <div class="bg-foreground/5 h-px"></div>
                             <div class="flex flex-col gap-0.5">
-                                <a class="hover:bg-foreground/5 -mx-3 flex gap-2.5 rounded-lg px-4 py-1.5" href="logout">
+                                <a class="hover:bg-foreground/5 -mx-3 flex gap-2.5 rounded-lg px-4 py-1.5" href="{{ route('logout') }}">
                                     <i data-lucide="power" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25"></i>
                                     Logout
                                 </a>

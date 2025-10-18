@@ -62,7 +62,7 @@ License: You must have a valid license purchased only from themeforest(the above
             <div class="overflow-x-hidden">
                 <div class="content__scroll-area relative z-20 pl-4 pr-11 transition-[margin] duration-200 xl:pl-0">
                     <!-- Top Navigation Bar -->
-                    @include('layouts.employee-topbar')
+                    @include('layouts.topbar')
                     
                     <!-- Page Content -->
                     <main class="main-content">

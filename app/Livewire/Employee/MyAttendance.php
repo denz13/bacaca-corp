@@ -16,6 +16,10 @@ class MyAttendance extends Component
     public $search = '';
     public $perPage = 10;
 
+    // Loading state
+    public $isLoaded = false;
+    public $dailyRecords = [];
+
     public function mount()
     {
         // Set default date range to current month
@@ -43,41 +47,100 @@ class MyAttendance extends Component
         $this->resetPage();
     }
 
+    public function loadAttendance()
+    {
+        // Validate that date range is selected
+        if (!$this->startDate || !$this->endDate) {
+            $this->dispatch('notification', [
+                'type' => 'warning',
+                'message' => 'Please select both start and end dates.',
+            ]);
+            return;
+        }
+
+        // Load the attendance data
+        $this->dailyRecords = $this->generateDailyTimeRecords(auth()->id());
+        $this->isLoaded = true;
+        
+        $this->dispatch('attendance-loaded');
+    }
+
     public function render()
     {
-        $userId = auth()->id();
-        $query = attendance::where('users_id', $userId)
-            ->with('users');
-
-        // Apply date range filter
-        if ($this->startDate && $this->endDate) {
-            $query->whereBetween('timestamp', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay()
-            ]);
-        }
-
-        // Apply search filter
-        if (!empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('action', 'like', '%' . $this->search . '%')
-                  ->orWhere('time', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        $attendances = $query->orderBy('timestamp', 'desc')
-            ->paginate($this->perPage);
-
-        // Calculate summary statistics
-        $summary = $this->calculateSummary($userId);
-
         return view('livewire.employee.my-attendance', [
-            'attendances' => $attendances,
-            'summary' => $summary
+            'dailyRecords' => $this->dailyRecords
         ])->layout('layouts.employee', [
-            'title' => 'My Attendance - Bacaca Corp',
-            'page-title' => 'My Attendance'
+            'title' => 'My Daily Time Record - Bacaca Corp',
+            'page-title' => 'My Daily Time Record'
         ]);
+    }
+
+    private function generateDailyTimeRecords($userId)
+    {
+        if (!$this->startDate || !$this->endDate) {
+            return [];
+        }
+
+        $start = Carbon::parse($this->startDate);
+        $end = Carbon::parse($this->endDate);
+        $dailyRecords = [];
+
+        // Get all attendance records for the date range from the attendance table
+        $attendanceRecords = attendance::where('users_id', $userId)
+            ->whereBetween('timestamp', [
+                $start->startOfDay(),
+                $end->endOfDay()
+            ])
+            ->orderBy('timestamp', 'asc')
+            ->get()
+            ->groupBy(function ($record) {
+                return Carbon::parse($record->timestamp)->toDateString();
+            });
+
+        // Generate records for each day in the range
+        $current = $start->copy();
+        while ($current->lte($end)) {
+            $dateString = $current->toDateString();
+            $dayRecords = $attendanceRecords->get($dateString, collect());
+
+            $dailyRecord = [
+                'date' => $current->copy(),
+                'day_number' => $current->format('d'),
+                'day_name' => $current->format('l'),
+                'is_weekend' => $current->isWeekend(),
+                'time_in' => null,
+                'break_out' => null,
+                'break_in' => null,
+                'time_out' => null,
+                'has_records' => $dayRecords->isNotEmpty()
+            ];
+
+            // Process attendance records for this day
+            if ($dayRecords->isNotEmpty()) {
+                $timeIn = $dayRecords->where('action', 'time_in')->first();
+                $breakOut = $dayRecords->where('action', 'break_out')->first();
+                $breakIn = $dayRecords->where('action', 'break_in')->first();
+                $timeOut = $dayRecords->where('action', 'time_out')->first();
+
+                if ($timeIn) {
+                    $dailyRecord['time_in'] = Carbon::parse($timeIn->timestamp)->format('H:i');
+                }
+                if ($breakOut) {
+                    $dailyRecord['break_out'] = Carbon::parse($breakOut->timestamp)->format('H:i');
+                }
+                if ($breakIn) {
+                    $dailyRecord['break_in'] = Carbon::parse($breakIn->timestamp)->format('H:i');
+                }
+                if ($timeOut) {
+                    $dailyRecord['time_out'] = Carbon::parse($timeOut->timestamp)->format('H:i');
+                }
+            }
+
+            $dailyRecords[] = $dailyRecord;
+            $current->addDay();
+        }
+
+        return $dailyRecords;
     }
 
     private function calculateSummary($userId)
