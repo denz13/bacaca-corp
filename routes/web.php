@@ -171,10 +171,9 @@ Route::get('/profile-management', function() {
 
 // Employee Routes
 Route::middleware(['auth'])->prefix('employee')->name('employee.')->group(function () {
-    Route::get('/dashboard', App\Livewire\Employee\Dashboard::class)->name('dashboard');
-    Route::get('/my-attendance', App\Livewire\Employee\MyAttendance::class)->name('my-attendance');
-    Route::get('/my-payroll', App\Livewire\Employee\MyPayroll::class)->name('my-payroll');
-    Route::get('/view-payslip/{payrollId}', App\Livewire\Employee\ViewPayslip::class)->name('view-payslip');
+        Route::get('/dashboard', App\Livewire\Employee\Dashboard::class)->name('dashboard');
+        Route::get('/my-attendance', App\Livewire\Employee\MyAttendance::class)->name('my-attendance');
+        Route::get('/my-payroll', App\Livewire\Employee\MyPayroll::class)->name('my-payroll');
 });
 
 Route::get("{any}", [RouteController::class, 'routes']);

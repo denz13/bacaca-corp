@@ -244,6 +244,7 @@ class CreatePayroll extends Component
                 DB::table('earnings_p')->insert([
                     'payroll_id' => $pId,
                     'earnings_id' => (int) $earningId,
+                    'amount' => (float) ($this->earningsAmounts[$earningId] ?? 0),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

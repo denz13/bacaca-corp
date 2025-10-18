@@ -16,6 +16,11 @@ class MyPayroll extends Component
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
 
+    // Payslip Modal
+    public $showPayslipModal = false;
+    public $selectedPayrollId = null;
+    public $payslipData = [];
+
     public function updatedSearch()
     {
         $this->resetPage();
@@ -35,6 +40,59 @@ class MyPayroll extends Component
             $this->sortDirection = 'asc';
         }
         $this->resetPage();
+    }
+
+    public function viewPayslip($payrollId)
+    {
+        $this->selectedPayrollId = $payrollId;
+        $this->loadPayslipData();
+        $this->showPayslipModal = true;
+    }
+
+    public function closePayslipModal()
+    {
+        $this->showPayslipModal = false;
+        $this->selectedPayrollId = null;
+        $this->payslipData = [];
+    }
+
+    private function loadPayslipData()
+    {
+        $userId = auth()->id();
+
+        // Get main payroll data
+        $this->payslipData['payroll'] = DB::table('process_payroll')
+            ->where('id', $this->selectedPayrollId)
+            ->where('empid', $userId)
+            ->first();
+
+        if (!$this->payslipData['payroll']) {
+            abort(404, 'Payslip not found');
+        }
+
+        // Get deductions
+        $this->payslipData['deductions'] = DB::table('deductions')
+            ->join('payroll_deduction', 'deductions.deductionid', '=', 'payroll_deduction.id')
+            ->where('deductions.payrollid', $this->selectedPayrollId)
+            ->select('payroll_deduction.description', 'payroll_deduction.amount')
+            ->get();
+
+        // Get earnings
+        $this->payslipData['earnings'] = DB::table('earnings_p')
+            ->join('earnings', 'earnings_p.earnings_id', '=', 'earnings.id')
+            ->where('earnings_p.payroll_id', $this->selectedPayrollId)
+            ->select('earnings.earnings as description', 'earnings_p.amount')
+            ->get();
+
+        // Get late information
+        $this->payslipData['lateInfo'] = DB::table('late')
+            ->where('payrollidd', $this->selectedPayrollId)
+            ->first();
+
+        // Get final payroll
+        $this->payslipData['finalPayroll'] = DB::table('f_payroll')
+            ->where('p_id', $this->selectedPayrollId)
+            ->first();
     }
 
     public function render()
