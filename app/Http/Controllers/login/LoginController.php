@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use App\Models\students;
 
 class LoginController extends Controller
 {
@@ -32,23 +31,15 @@ class LoginController extends Controller
             // Login as User using web guard
             Auth::guard('web')->login($user);
             $request->session()->regenerate();
-            return redirect()->intended('/dashboard?login=success');
-        }
-
-        // Check if email exists in students model
-        $student = students::where('email', $email)->first();
-        if ($student && Hash::check($password, $student->password)) {
-            // Check if student status is active (not pending)
-            if ($student->status === 'pending') {
-                return back()->withErrors([
-                    'email' => 'Your account is still pending approval. Please wait for admin approval.',
-                ]);
-            }
             
-            // Login as Student using students guard
-            Auth::guard('students')->login($student);
-            $request->session()->regenerate();
-            return redirect()->intended('/dashboard?login=success');
+            // Redirect based on role
+            if ($user->role == 1) {
+                // Employee - redirect to employee dashboard
+                return redirect()->intended('/employee/dashboard?login=success');
+            } else {
+                // Admin - redirect to admin dashboard
+                return redirect()->intended('/dashboard?login=success');
+            }
         }
 
         return back()->withErrors([
@@ -58,9 +49,8 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
-        // Logout from both guards
+        // Logout from web guard
         Auth::guard('web')->logout();
-        Auth::guard('students')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/');

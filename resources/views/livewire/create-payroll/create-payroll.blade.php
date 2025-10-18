@@ -313,10 +313,96 @@
         modalId="process-payroll-modal" 
         :title="'Process Payroll' . ($selectedUserName ? ' - ' . $selectedUserName : '')" 
         description="Add deductions and earnings for this employee"
-        size="lg"
+        size="3xl"
         :isOpen="$showProcessPayrollModal">
         
         <div class="space-y-6">
+            @php
+                $selectedUser = null;
+                if (isset($selectedUserId)) {
+                    if (isset($users) && method_exists($users, 'getCollection')) {
+                        $selectedUser = $users->getCollection()->firstWhere('id', $selectedUserId);
+                    } elseif (isset($users) && $users instanceof \Illuminate\Support\Collection) {
+                        $selectedUser = $users->firstWhere('id', $selectedUserId);
+                    }
+                }
+
+                $totalLateMinutes = 0;
+                $missingDates = [];
+
+                if ($selectedUser && ($startDate ?? null) && ($endDate ?? null)) {
+                    $start = \Carbon\Carbon::parse($startDate)->startOfDay();
+                    $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+
+                    $attendanceInRange = $selectedUser->attendance->filter(function ($r) use ($start, $end) {
+                        $ts = \Carbon\Carbon::parse($r->timestamp);
+                        return $ts->between($start, $end);
+                    });
+
+                    $totalLateMinutes = (int) $attendanceInRange->sum(function ($r) {
+                        return (int) ($r->late_minutes ?? 0);
+                    });
+
+                    $attendanceDates = $attendanceInRange
+                        ->map(function ($r) {
+                            return \Carbon\Carbon::parse($r->timestamp)->toDateString();
+                        })
+                        ->unique()
+                        ->values();
+
+                    $period = \Carbon\CarbonPeriod::create($start->copy()->startOfDay(), '1 day', $end->copy()->startOfDay());
+                    foreach ($period as $date) {
+                        $dateStr = $date->toDateString();
+                        if (! $attendanceDates->contains($dateStr)) {
+                            $missingDates[] = $dateStr;
+                        }
+                    }
+                }
+            @endphp
+
+            @if(($startDate ?? null) && ($endDate ?? null))
+                <div class="border rounded-lg p-4">
+                    <h3 class="font-medium mb-3">Summary for Selected Range</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="box p-3 rounded-md border border-foreground/10 bg-foreground/5">
+                            <div class="text-sm opacity-70">Total Late Minutes</div>
+                            <div class="text-2xl font-semibold mt-1">{{ number_format($totalLateMinutes) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border rounded-lg p-4">
+                    <h3 class="font-medium mb-3">Dates Without Attendance</h3>
+                    @if($selectedUser && count($missingDates) > 0)
+                        <div x-data="{ selections: @js(collect($missingDates)->mapWithKeys(fn($d) => [$d => 'Absent'])) }" class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-foreground/5 border-b border-foreground/10">
+                                    <tr>
+                                        <th class="p-3 text-left font-medium w-56">Date</th>
+                                        <th class="p-3 text-left font-medium">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($missingDates as $noDataDate)
+                                        <tr class="border-b border-foreground/5">
+                                            <td class="p-3 whitespace-nowrap">{{ \Carbon\Carbon::parse($noDataDate)->format('M d, Y') }}</td>
+                                            <td class="p-3">
+                                                <select x-model="selections['{{ $noDataDate }}']" class="h-9 rounded-md border bg-background px-3 py-1.5">
+                                                    <option value="Absent">Absent</option>
+                                                    <option value="Leave without pay">Leave without pay</option>
+                                                    <option value="Leave with pay">Leave with pay</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-sm opacity-70">All dates in the selected range have attendance. No missing dates to display.</div>
+                    @endif
+                </div>
+            @endif
             <!-- Add Deduction Section -->
             <div class="border rounded-lg p-4">
                 <h3 class="font-medium mb-3 flex items-center gap-2">
@@ -525,7 +611,44 @@
 
         <x-slot:footer>
             <button wire:click="$set('showProcessPayrollModal', false)" data-tw-dismiss="modal" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground hover:bg-foreground/5 bg-background border-foreground/20 h-10 px-4 py-2 mr-1 w-24">Cancel</button>
-            <button type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-(--color)/20 border-(--color)/60 text-(--color) hover:bg-(--color)/5 [--color:var(--color-primary)] h-10 px-4 py-2 w-32">Process</button>
+            <button wire:click="processPayroll" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-(--color)/20 border-(--color)/60 text-(--color) hover:bg-(--color)/5 [--color:var(--color-primary)] h-10 px-4 py-2 w-32">Process</button>
+        </x-slot:footer>
+    </x-menu.modal>
+    
+    <!-- Success Modal -->
+    <x-menu.modal 
+        :showButton="false" 
+        modalId="process-success-modal" 
+        title="Payroll Processed"
+        description="The payroll has been processed successfully."
+        size="lg"
+        :isOpen="$showSuccessModal">
+        <div class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="box p-3 rounded-md border border-foreground/10 bg-foreground/5">
+                    <div class="text-xs opacity-70">Period</div>
+                    <div class="font-medium">{{ $processedSummary['period'] ?? '' }}</div>
+                </div>
+                <div class="box p-3 rounded-md border border-foreground/10 bg-foreground/5">
+                    <div class="text-xs opacity-70">Process ID</div>
+                    <div class="font-medium">{{ $processedSummary['process_id'] ?? '' }}</div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <tbody>
+                        <tr><td class="p-2">Gross Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['partial'] ?? 0, 2) }}</td></tr>
+                        <tr><td class="p-2">Total Deductions</td><td class="p-2 text-right">₱{{ number_format($processedSummary['total_deductions'] ?? 0, 2) }}</td></tr>
+                        <tr><td class="p-2">Late Minutes</td><td class="p-2 text-right">{{ $processedSummary['late_minutes'] ?? 0 }}</td></tr>
+                        <tr><td class="p-2">Late Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['late_amount'] ?? 0, 2) }}</td></tr>
+                        <tr><td class="p-2">Other Pay</td><td class="p-2 text-right">₱{{ number_format($processedSummary['total_earnings'] ?? 0, 2) }}</td></tr>
+                        <tr class="font-medium"><td class="p-2">Net Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['net'] ?? 0, 2) }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <x-slot:footer>
+            <button wire:click="$set('showSuccessModal', false)" data-tw-dismiss="modal" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground hover:bg-foreground/5 bg-background border-foreground/20 h-10 px-4 py-2 w-24">Close</button>
         </x-slot:footer>
     </x-menu.modal>
  

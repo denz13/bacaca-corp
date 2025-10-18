@@ -7,6 +7,9 @@ use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\deduction;
 use App\Models\earnings;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use App\Models\attendance as Attendance;
 
 class CreatePayroll extends Component
 {
@@ -37,6 +40,10 @@ class CreatePayroll extends Component
     public ?int $selectedEarningId = null;
     public ?string $earningDescriptionInput = null;
     public ?float $earningAmountInput = null;
+
+    // Success modal
+    public bool $showSuccessModal = false;
+    public array $processedSummary = [];
 
     public function openProcessPayrollModal(int $userId, string $userName): void
     {
@@ -147,6 +154,135 @@ class CreatePayroll extends Component
         $this->selectedEarningId = null;
         $this->earningDescriptionInput = null;
         $this->earningAmountInput = null;
+    }
+
+    public function processPayroll(): void
+    {
+        if (!$this->selectedUserId || !$this->startDate || !$this->endDate) {
+            $this->dispatchBrowserEvent('notification', [
+                'type' => 'warning',
+                'message' => 'Please select a user and date range first.',
+            ]);
+            return;
+        }
+
+        // Gather attendance within range
+        $start = Carbon::parse($this->startDate)->startOfDay();
+        $end = Carbon::parse($this->endDate)->endOfDay();
+
+        $attendanceInRange = Attendance::where('users_id', $this->selectedUserId)
+            ->whereBetween('timestamp', [$start, $end])
+            ->get();
+
+        $uniqueDatesWorked = $attendanceInRange
+            ->map(fn ($r) => Carbon::parse($r->timestamp)->toDateString())
+            ->unique()
+            ->values();
+
+        $totalLateMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->late_minutes ?? 0));
+
+        // Get salary from position table
+        $position = DB::table('position')->where('user_id', $this->selectedUserId)->first();
+        $salaryRate = (float) ($position->salary ?? 0);
+        $nature = (string) ($position->nature ?? 'day');
+
+        // Compute partial: salary based on nature and biometric days
+        $workedDays = $uniqueDatesWorked->count();
+        $partial = $nature === 'day' ? $workedDays * $salaryRate : $salaryRate;
+
+        // Compute totals for deductions and earnings
+        $selectedDeductionIds = array_map('intval', $this->selectedDeductions);
+        $totalDeductions = 0.0;
+        if (!empty($selectedDeductionIds)) {
+            $deductionRows = DB::table('payroll_deduction')->whereIn('id', $selectedDeductionIds)->get();
+            $totalDeductions = (float) $deductionRows->sum(fn ($r) => (float) ($r->amount ?? 0));
+        }
+
+        $totalEarnings = 0.0;
+        foreach ($this->chosenEarnings as $earningId) {
+            $totalEarnings += (float) ($this->earningsAmounts[$earningId] ?? 0);
+        }
+
+        $lateAmount = (float) $totalLateMinutes * 1.0; // 1 per minute
+
+        $periodStr = $start->toDateString() . ' - ' . $end->toDateString();
+
+        DB::transaction(function () use (
+            $periodStr,
+            $partial,
+            $selectedDeductionIds,
+            $totalDeductions,
+            $totalLateMinutes,
+            $lateAmount,
+            $totalEarnings
+        ) {
+            // 1) Partial payroll
+            $pId = DB::table('process_payroll')->insertGetId([
+                'empid' => $this->selectedUserId,
+                'period' => $periodStr,
+                'partial' => $partial,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // 2) Deductions (reference payroll_deduction)
+            if (!empty($selectedDeductionIds)) {
+                $rows = DB::table('payroll_deduction')->whereIn('id', $selectedDeductionIds)->get();
+                foreach ($rows as $row) {
+                    DB::table('deductions')->insert([
+                        'payrollid' => $pId,
+                        'deductionid' => $row->id,
+                        'description' => $row->description ?? null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            // 3) Earnings (reference earnings)
+            foreach ($this->chosenEarnings as $earningId) {
+                DB::table('earnings_p')->insert([
+                    'payroll_id' => $pId,
+                    'earnings_id' => (int) $earningId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // 4) Late record
+            DB::table('late')->insert([
+                'payrollidd' => $pId,
+                'late' => $totalLateMinutes,
+                'amount' => $lateAmount,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // 5) Final payroll
+            $net = (float) $partial - (float) $totalDeductions - (float) $lateAmount + (float) $totalEarnings;
+            DB::table('f_payroll')->insert([
+                'p_id' => $pId,
+                'net' => $net,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Expose summary
+            $this->processedSummary = [
+                'partial' => $partial,
+                'total_deductions' => $totalDeductions,
+                'late_minutes' => $totalLateMinutes,
+                'late_amount' => $lateAmount,
+                'total_earnings' => $totalEarnings,
+                'net' => $net,
+                'period' => $periodStr,
+                'process_id' => $pId,
+            ];
+        });
+
+        $this->showSuccessModal = true;
+        $this->showProcessPayrollModal = false;
+        $this->dispatch('refresh')->self();
     }
 
     public function render()
