@@ -18,6 +18,16 @@ class DTR extends Component
     public ?string $startDate = null;
     public ?string $endDate = null;
     public $workSchedule = [];
+    
+    // Modal properties
+    public $showAttendanceModal = false;
+    public $selectedDate = null;
+    public $selectedAction = null; // 'time_in' or 'time_out'
+    public $selectedTime = null;
+    public $selectedWhen = null; // 'Morning In', 'Morning Out', 'Afternoon In', 'Afternoon Out', 'Undertime', 'Late'
+    public $selectedValue = null; // For undertime/late minutes
+    public $modalType = 'attendance'; // 'attendance' or 'minutes'
+    public $selectedRecordId = null; // For updating existing records
 
     public function mount()
     {
@@ -98,15 +108,17 @@ class DTR extends Component
             $pmIn = $timeIns->count() > 1 ? Carbon::parse($timeIns->get(1)->timestamp)->format('H:i') : '';
             $pmOut = $timeOuts->count() > 1 ? Carbon::parse($timeOuts->get(1)->timestamp)->format('H:i') : '';
 
-            // Calculate undertime
-            $undertime = 0;
-            if ($pmOut) {
-                $scheduledOut = Carbon::parse($dateString . ' ' . $scheduledPmOut);
-                $actualOut = Carbon::parse($dateString . ' ' . $pmOut);
-                if ($actualOut->lt($scheduledOut)) {
-                    $undertime = $actualOut->diffInMinutes($scheduledOut);
-                }
-            }
+            // Get undertime from attendance records (sum of all undertime_minutes for the day)
+            $undertime = $records->sum('undertime_minutes') ?? 0;
+
+            // Get late from attendance records (sum of all late_minutes for the day)
+            $late = $records->sum('late_minutes') ?? 0;
+
+            // Check if it's a weekend
+            $isWeekend = in_array($dayName, ['saturday', 'sunday']);
+            
+            // Check if there's any attendance data for this day
+            $hasAttendanceData = $records->count() > 0;
 
             $this->dtrData[] = [
                 'day' => $day,
@@ -117,7 +129,9 @@ class DTR extends Component
                 'pm_in' => $pmIn,
                 'pm_out' => $pmOut,
                 'undertime' => $undertime,
-                'is_weekend' => in_array($dayName, ['saturday', 'sunday']),
+                'late' => $late,
+                'is_weekend' => $isWeekend,
+                'has_attendance_data' => $hasAttendanceData,
                 'scheduled' => [
                     'am_in' => $scheduledTimeIn,
                     'am_out' => $scheduledTimeOut,
@@ -141,6 +155,181 @@ class DTR extends Component
     {
         if ($this->selectedEmployeeId && $this->startDate && $this->endDate) {
             $this->loadDtrData();
+        }
+    }
+
+    public function openAttendanceModal($date, $when)
+    {
+        $this->selectedDate = $date;
+        $this->selectedWhen = $when;
+        
+        // Check if editing undertime or late
+        if ($when === 'Undertime' || $when === 'Late') {
+            $this->modalType = 'minutes';
+            $this->selectedValue = '';
+            
+            // Get current value from attendance records
+            $records = attendance::where('users_id', $this->selectedEmployeeId)
+                ->whereDate('timestamp', $date)
+                ->get();
+            
+            if ($when === 'Undertime') {
+                $this->selectedValue = $records->sum('undertime_minutes') ?? 0;
+            } else {
+                $this->selectedValue = $records->sum('late_minutes') ?? 0;
+            }
+        } else {
+            $this->modalType = 'attendance';
+            // Determine action based on when
+            if (str_contains($when, 'In')) {
+                $this->selectedAction = 'time_in';
+            } else {
+                $this->selectedAction = 'time_out';
+            }
+            
+            // Get existing attendance records for this date
+            $allRecords = attendance::where('users_id', $this->selectedEmployeeId)
+                ->whereDate('timestamp', $date)
+                ->orderBy('timestamp', 'asc')
+                ->get();
+            
+            // Determine which record to load based on when
+            $recordToLoad = null;
+            if ($when === 'Morning In') {
+                $recordToLoad = $allRecords->where('action', 'time_in')->first();
+            } elseif ($when === 'Morning Out') {
+                $recordToLoad = $allRecords->where('action', 'time_out')->first();
+            } elseif ($when === 'Afternoon In') {
+                $recordToLoad = $allRecords->where('action', 'time_in')->skip(1)->first();
+            } elseif ($when === 'Afternoon Out') {
+                $recordToLoad = $allRecords->where('action', 'time_out')->skip(1)->first();
+            }
+            
+            if ($recordToLoad) {
+                $this->selectedTime = Carbon::parse($recordToLoad->timestamp)->format('H:i');
+                $this->selectedRecordId = $recordToLoad->id;
+            } else {
+                // Set default time to current time if no existing record
+                $this->selectedTime = now()->format('H:i');
+                $this->selectedRecordId = null;
+            }
+        }
+        
+        $this->showAttendanceModal = true;
+        $this->dispatch('open-attendance-modal');
+    }
+
+    public function closeAttendanceModal()
+    {
+        $this->showAttendanceModal = false;
+        $this->selectedDate = null;
+        $this->selectedAction = null;
+        $this->selectedTime = null;
+        $this->selectedWhen = null;
+        $this->selectedValue = null;
+        $this->selectedRecordId = null;
+        $this->modalType = 'attendance';
+        $this->dispatch('close-attendance-modal');
+    }
+
+    public function saveAttendance()
+    {
+        try {
+            if ($this->modalType === 'minutes') {
+                // Save undertime or late minutes - just update the value directly
+                if (!$this->selectedEmployeeId || !$this->selectedDate || !$this->selectedWhen) {
+                    $this->dispatch('show-toast', [
+                        'type' => 'error',
+                        'title' => 'Error',
+                        'message' => 'Missing required fields'
+                    ]);
+                    return;
+                }
+
+            // Get existing attendance records for this date
+            $records = attendance::where('users_id', $this->selectedEmployeeId)
+                ->whereDate('timestamp', $this->selectedDate)
+                ->get();
+
+            if ($records->count() > 0) {
+                // Update the first record with the minutes value
+                $firstRecord = $records->first();
+                if ($this->selectedWhen === 'Undertime') {
+                    $firstRecord->update(['undertime_minutes' => $this->selectedValue ?? 0]);
+                } else {
+                    $firstRecord->update(['late_minutes' => $this->selectedValue ?? 0]);
+                }
+            } else {
+                // Create a new record if none exists - just with the minutes value
+                $timestamp = Carbon::parse($this->selectedDate . ' 08:00');
+                $data = [
+                    'users_id' => $this->selectedEmployeeId,
+                    'action' => 'time_in',
+                    'timestamp' => $timestamp,
+                    'time' => '08:00',
+                ];
+                
+                if ($this->selectedWhen === 'Undertime') {
+                    $data['undertime_minutes'] = $this->selectedValue ?? 0;
+                } else {
+                    $data['late_minutes'] = $this->selectedValue ?? 0;
+                }
+                
+                attendance::create($data);
+            }
+        } else {
+            // Save or update attendance record
+            if (!$this->selectedEmployeeId || !$this->selectedDate || !$this->selectedAction || !$this->selectedTime) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'title' => 'Error',
+                    'message' => 'Missing required fields'
+                ]);
+                return;
+            }
+
+            // Create timestamp from date and time
+            $timestamp = Carbon::parse($this->selectedDate . ' ' . $this->selectedTime);
+
+            if ($this->selectedRecordId) {
+                // Update existing record
+                $record = attendance::find($this->selectedRecordId);
+                if ($record) {
+                    $record->update([
+                        'timestamp' => $timestamp,
+                        'time' => $this->selectedTime,
+                    ]);
+                }
+            } else {
+                // Create new attendance record
+                attendance::create([
+                    'users_id' => $this->selectedEmployeeId,
+                    'action' => $this->selectedAction,
+                    'timestamp' => $timestamp,
+                    'time' => $this->selectedTime,
+                ]);
+            }
+        }
+
+        // Close modal first
+        $this->closeAttendanceModal();
+        
+        // Reload DTR data
+        $this->loadDtrData();
+        
+        // Show success toast
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'title' => 'Success',
+            'message' => 'Attendance saved successfully'
+        ]);
+        } catch (\Exception $e) {
+            // Show error toast
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'title' => 'Error',
+                'message' => 'Error saving attendance: ' . $e->getMessage()
+            ]);
         }
     }
 

@@ -1,3 +1,7 @@
+<div>
+    <!-- Toast Notification Template -->
+    <x-menu.notification-toast />
+    
 <div class="mt-8 grid grid-cols-12 gap-6">
     <div class="col-span-12 lg:col-span-3">
         <h2 class="mr-auto mt-2 text-lg font-medium">Employees</h2>
@@ -229,8 +233,8 @@
                             @foreach($dtrData as $record)
                             <tr class="[&:hover>td]:before:bg-accent [&:hover>td]:relative [&:hover>td]:before:absolute [&:hover>td]:before:inset-0 [&:hover>td]:before:z-[-1] [&:hover>td]:before:blur-lg">
                                 <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center">{{ $record['day'] }}</td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 relative text-center overflow-hidden" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning In">
-                                    @if($record['is_weekend'])
+                                <td class="border border-slate-200 dark:border-darkmode-400 relative text-center overflow-hidden {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning In" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Morning In')" @endif>
+                                    @if($record['is_weekend'] && !$record['has_attendance_data'])
                                         <span class="absolute inset-0 flex items-center justify-center font-semibold text-red-600 uppercase tracking-[0.2em] text-xs pointer-events-none whitespace-nowrap">
                                             {{ strtoupper($record['day_name']) }}
                                         </span>
@@ -238,57 +242,30 @@
                                         {{ $record['am_in'] }}
                                     @endif
                                 </td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning Out">
-                                    @if(!$record['is_weekend'] && $record['am_out'])
+                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning Out" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Morning Out')" @endif>
+                                    @if(!($record['is_weekend'] && !$record['has_attendance_data']) && $record['am_out'])
                                         {{ $record['am_out'] }}
                                     @endif
                                 </td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 text-center" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon In">
-                                    @if(!$record['is_weekend'] && $record['pm_in'])
+                                <td class="border border-slate-200 dark:border-darkmode-400 text-center {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon In" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Afternoon In')" @endif>
+                                    @if(!($record['is_weekend'] && !$record['has_attendance_data']) && $record['pm_in'])
                                         {{ $record['pm_in'] }}
                                     @endif
                                 </td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon Out">
-                                    @if(!$record['is_weekend'] && $record['pm_out'])
+                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon Out" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Afternoon Out')" @endif>
+                                    @if(!($record['is_weekend'] && !$record['has_attendance_data']) && $record['pm_out'])
                                         {{ $record['pm_out'] }}
                                     @endif
                                 </td>
-                                <td class="text-danger text-center border border-slate-200 dark:border-darkmode-400">
+                                <td class="text-danger text-center border border-slate-200 dark:border-darkmode-400 {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Undertime')" @endif>
                                     @if($record['undertime'] > 0)
-                                        <div class="dropdown inline-block" data-tw-placement="top">
-                                            <button class="dropdown-toggle text-danger" aria-expanded="false" data-tw-toggle="dropdown">{{ $record['undertime'] }}</button>
-                                            <div class="dropdown-menu">
-                                                <ul class="dropdown-content">
-                                                    <div>
-                                                        <x-menu.regular-table hoverEffect="false">
-                                                            <x-slot:thead>
-                                                                <tr>
-                                                                    <th class="whitespace-nowrap text-center">Scheduled <br> Time</th>
-                                                                </tr>
-                                                            </x-slot:thead>
-                                                            <x-slot:tbody>
-                                                                <tr class="text-center">
-                                                                    <td>{{ $record['scheduled']['am_in'] }}</td>
-                                                                </tr>
-                                                                <tr class="text-center">
-                                                                    <td>{{ $record['scheduled']['am_out'] }}</td>
-                                                                </tr>
-                                                                <tr class="text-center">
-                                                                    <td>{{ $record['scheduled']['pm_in'] }}</td>
-                                                                </tr>
-                                                                <tr class="text-center">
-                                                                    <td>{{ $record['scheduled']['pm_out'] }}</td>
-                                                                </tr>
-                                                            </x-slot:tbody>
-                                                        </x-menu.regular-table>
-                                                    </div>
-                                                </ul>
-                                            </div>
-                                        </div>
+                                        {{ $record['undertime'] }}
                                     @endif
                                 </td>
-                                <td class="text-center border border-slate-200 dark:border-darkmode-400">
-                                    <!-- Late data will go here -->
+                                <td class="text-danger text-center border border-slate-200 dark:border-darkmode-400 {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Late')" @endif>
+                                    @if($record['late'] > 0)
+                                        {{ $record['late'] }}
+                                    @endif
                                 </td>
                             </tr>
                             @endforeach
@@ -314,4 +291,105 @@
         </div>
         @endif
     </div>
+    
+    <!-- Attendance Modal -->
+    <x-menu.modal 
+        :showButton="false" 
+        modalId="attendance-modal" 
+        :title="$modalType === 'minutes' ? 'Edit ' . ($selectedWhen ?? '') : ($selectedRecordId ? 'Edit ' : 'Add ') . ucfirst(str_replace('_', ' ', $selectedAction ?? 'Attendance'))" 
+        :description="'Date: ' . ($selectedDate ? \Carbon\Carbon::parse($selectedDate)->format('M d, Y') : '') . ($modalType === 'attendance' ? ' - ' . ($selectedWhen ?? '') : '')"
+        size="md"
+        :isOpen="$showAttendanceModal">
+        
+        <div class="space-y-4">
+            @if($modalType === 'minutes')
+                <!-- Minutes Input (Undertime/Late) -->
+                <div class="grid gap-4 gap-y-3">
+                    <div class="grid grid-cols-4 items-center gap-4">
+                        <label class="text-right text-sm font-medium" for="minutes-value">
+                            {{ $selectedWhen ?? 'Minutes' }} (Minutes)
+                        </label>
+                        <input 
+                            wire:model="selectedValue" 
+                            id="minutes-value"
+                            class="col-span-3 w-full rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/5" 
+                            type="text" 
+                            placeholder="Enter minutes">
+                    </div>
+                    @error('selectedValue') <div class="col-start-2 col-span-3 text-danger text-xs">{{ $message }}</div> @enderror
+                </div>
+            @else
+                <!-- Time Input (Attendance) -->
+                <div class="grid gap-4 gap-y-3">
+                    <div class="grid grid-cols-4 items-center gap-4">
+                        <label class="text-right text-sm font-medium" for="attendance-time">
+                            Time
+                        </label>
+                        <input 
+                            wire:model="selectedTime" 
+                            id="attendance-time"
+                            class="col-span-3 w-full rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/5" 
+                            type="time">
+                    </div>
+                    @error('selectedTime') <div class="col-start-2 col-span-3 text-danger text-xs">{{ $message }}</div> @enderror
+                    
+                    <div class="grid grid-cols-4 items-center gap-4">
+                        <label class="text-right text-sm font-medium">
+                            Action
+                        </label>
+                        <div class="col-span-3">
+                            <span class="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium {{ $selectedAction === 'time_in' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800' }}">
+                                {{ ucfirst(str_replace('_', ' ', $selectedAction ?? '')) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </div>
+        
+        <x-slot:footer>
+            <button wire:click="closeAttendanceModal" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground hover:bg-foreground/5 bg-background border-foreground/20 h-10 px-4 py-2 mr-1 w-24">
+                Cancel
+            </button>
+            <button type="button" wire:click="saveAttendance" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-white hover:bg-primary/90 h-10 px-4 py-2 w-24">
+                Save
+            </button>
+        </x-slot:footer>
+    </x-menu.modal>
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('open-attendance-modal', () => {
+                setTimeout(() => {
+                    const modal = document.getElementById('attendance-modal');
+                    if (modal) {
+                        modal.classList.add('show');
+                    }
+                }, 100);
+            });
+            
+            Livewire.on('close-attendance-modal', () => {
+                const modal = document.getElementById('attendance-modal');
+                if (modal) {
+                    modal.classList.remove('show');
+                    // Also try to close using the modal's dismiss method
+                    const dismissBtn = modal.querySelector('[data-tw-dismiss="modal"]');
+                    if (dismissBtn) {
+                        dismissBtn.click();
+                    }
+                }
+            });
+        });
+        
+        // Also listen for Livewire updates to close modal
+        document.addEventListener('livewire:update', () => {
+            if (@this.showAttendanceModal === false) {
+                const modal = document.getElementById('attendance-modal');
+                if (modal && modal.classList.contains('show')) {
+                    modal.classList.remove('show');
+                }
+            }
+        });
+    </script>
+</div>
 </div>
