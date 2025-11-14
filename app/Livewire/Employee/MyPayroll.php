@@ -95,6 +95,15 @@ class MyPayroll extends Component
             ->first();
     }
 
+    public function mount()
+    {
+        // Check if payslip_id is in the query string (from route redirect)
+        $payslipId = request()->get('payslip_id');
+        if ($payslipId) {
+            $this->viewPayslip((int) $payslipId);
+        }
+    }
+
     public function render()
     {
         $userId = auth()->id();

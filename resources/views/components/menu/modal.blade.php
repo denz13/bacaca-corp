@@ -1,5 +1,5 @@
 @props([
-    'size' => 'md', // sm|md|lg|xl|2xl|3xl
+    'size' => 'md', // sm|md|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl
     'triggerId' => 'open-modal',
     'modalId' => 'dialog-modal',
     'title' => 'Modal Dialog',
@@ -20,6 +20,10 @@
         'xl' => 'sm:max-w-xl',
         '2xl' => 'sm:max-w-2xl',
         '3xl' => 'sm:max-w-3xl',
+        '4xl' => 'sm:max-w-4xl',
+        '5xl' => 'sm:max-w-5xl',
+        '6xl' => 'sm:max-w-6xl',
+        '7xl' => 'sm:max-w-7xl',
     ];
     $dialogSize = $sizeMap[$size] ?? $sizeMap['md'];
 @endphp
