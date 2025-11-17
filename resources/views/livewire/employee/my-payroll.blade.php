@@ -256,4 +256,20 @@
             <button wire:click="closePayslipModal" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground hover:bg-foreground/5 bg-background border-foreground/20 h-10 px-4 py-2 mr-1 w-24">Close</button>
         </x-slot:footer>
     </x-menu.modal>
+
+    <script>
+        // Clean up URL parameter after modal opens (if it was opened via route)
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if payslip_id is in URL and modal should be open
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('payslip_id')) {
+                // Wait a bit for Livewire to render the modal, then clean URL
+                setTimeout(() => {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('payslip_id');
+                    window.history.replaceState({}, '', url);
+                }, 1000);
+            }
+        });
+    </script>
 </div>

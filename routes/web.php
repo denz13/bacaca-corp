@@ -174,6 +174,9 @@ Route::middleware(['auth'])->prefix('employee')->name('employee.')->group(functi
         Route::get('/dashboard', App\Livewire\Employee\Dashboard::class)->name('dashboard');
         Route::get('/my-attendance', App\Livewire\Employee\MyAttendance::class)->name('my-attendance');
         Route::get('/my-payroll', App\Livewire\Employee\MyPayroll::class)->name('my-payroll');
+        Route::get('/view-payslip/{payrollId}', function ($payrollId) {
+            return redirect()->route('employee.my-payroll', ['payslip_id' => $payrollId]);
+        })->name('view-payslip');
 });
 
 Route::get("{any}", [RouteController::class, 'routes']);

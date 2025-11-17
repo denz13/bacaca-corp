@@ -14,7 +14,7 @@ class attendance extends Model
     protected $table = 'attendance';
     protected $primaryKey = 'id';
     public $timestamps = true;
-    protected $fillable = ['users_id', 'action', 'timestamp', 'time', 'is_late','late_minutes','overtime_minutes'];
+    protected $fillable = ['users_id', 'action', 'timestamp', 'time', 'is_late','late_minutes', 'is_undertime', 'undertime_minutes', 'overtime_minutes'];
 
     public function users()
     {

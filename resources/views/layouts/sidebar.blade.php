@@ -53,6 +53,9 @@
                         <li>
                            <x-menu.sidebar-submenu-item href="calendar" icon="panel-bottom-close" :text="__('Calendar')" />
                         </li>
+                        <li>
+                           <x-menu.sidebar-submenu-item href="d-t-r" icon="panel-bottom-close" :text="__('DTR')" />
+                        </li>
                        
                     
                         <li class="side-menu__group-label">

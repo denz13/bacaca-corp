@@ -19,6 +19,15 @@ class RouteController extends Controller
             return $this->index();
         }
 
+        // Handle special route mappings (e.g., d-t-r -> dtr)
+        $routeMappings = [
+            'd-t-r' => 'dtr',
+        ];
+        
+        if (isset($routeMappings[$key])) {
+            $key = $routeMappings[$key];
+        }
+
         if (view()->exists($key)) {
             return view($key);
         }
@@ -117,6 +126,12 @@ class RouteController extends Controller
         }
         if (view()->exists($key . '.index-create-payroll')) {
             return view($key . '.index-create-payroll');
+        }
+        if (view()->exists($key . '.index-d-t-r')) {
+            return view($key . '.index-d-t-r');
+        }
+        if (view()->exists($key . '.index-dtr')) {
+            return view($key . '.index-dtr');
         }
        
         return abort(404);
