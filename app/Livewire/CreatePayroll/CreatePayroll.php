@@ -4,9 +4,11 @@ namespace App\Livewire\CreatePayroll;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\Computed;
 use App\Models\User;
 use App\Models\deduction;
 use App\Models\earnings;
+use App\Models\calendar_holiday as CalendarHoliday;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\attendance as Attendance;
@@ -41,9 +43,24 @@ class CreatePayroll extends Component
     public ?string $earningDescriptionInput = null;
     public ?float $earningAmountInput = null;
 
+    // Holiday handling
+    public array $holidayDetails = [];
+    public array $holidayWorkSelections = [];
+    public float $holidayRatePerDay = 0.0;
+
     // Success modal
     public bool $showSuccessModal = false;
     public array $processedSummary = [];
+
+    public function updatedStartDate(): void
+    {
+        $this->resetHolidayData();
+    }
+
+    public function updatedEndDate(): void
+    {
+        $this->resetHolidayData();
+    }
 
     public function openProcessPayrollModal(int $userId, string $userName): void
     {
@@ -62,6 +79,8 @@ class CreatePayroll extends Component
         $this->selectedEarningId = null;
         $this->earningDescriptionInput = null;
         $this->earningAmountInput = null;
+
+        $this->prepareHolidayData(force: true);
     }
     
     public function addDeduction(): void
@@ -156,6 +175,15 @@ class CreatePayroll extends Component
         $this->earningAmountInput = null;
     }
 
+    public function updateHolidaySelection(string $date, $value): void
+    {
+        if (!isset($this->holidayDetails[$date])) {
+            return;
+        }
+
+        $this->holidayWorkSelections[$date] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+
     public function processPayroll(): void
     {
         if (!$this->selectedUserId || !$this->startDate || !$this->endDate) {
@@ -165,6 +193,8 @@ class CreatePayroll extends Component
             ]);
             return;
         }
+
+        $this->prepareHolidayData();
 
         // Gather attendance within range
         $start = Carbon::parse($this->startDate)->startOfDay();
@@ -180,6 +210,7 @@ class CreatePayroll extends Component
             ->values();
 
         $totalLateMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->late_minutes ?? 0));
+        $totalUndertimeMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->undertime_minutes ?? 0));
 
         // Get salary from position table
         $position = DB::table('position')->where('user_id', $this->selectedUserId)->first();
@@ -189,6 +220,11 @@ class CreatePayroll extends Component
         // Compute partial: salary based on nature and biometric days
         $workedDays = $uniqueDatesWorked->count();
         $partial = $nature === 'day' ? $workedDays * $salaryRate : $salaryRate;
+        $potentialWorkMinutes = $workedDays * 8 * 60;
+        $earnedWorkMinutes = max(0, $potentialWorkMinutes - $totalUndertimeMinutes);
+        $equivalentWorkDays = $potentialWorkMinutes > 0
+            ? round($earnedWorkMinutes / (8 * 60), 4)
+            : 0.0;
 
         // Compute totals for deductions and earnings
         $selectedDeductionIds = array_map('intval', $this->selectedDeductions);
@@ -198,12 +234,20 @@ class CreatePayroll extends Component
             $totalDeductions = (float) $deductionRows->sum(fn ($r) => (float) ($r->amount ?? 0));
         }
 
-        $totalEarnings = 0.0;
+        $totalManualEarnings = 0.0;
         foreach ($this->chosenEarnings as $earningId) {
-            $totalEarnings += (float) ($this->earningsAmounts[$earningId] ?? 0);
+            $totalManualEarnings += (float) ($this->earningsAmounts[$earningId] ?? 0);
         }
 
-        $lateAmount = (float) $totalLateMinutes * 1.0; // 1 per minute
+        $holidayEntries = $this->getSelectedHolidayEntries();
+        $holidayTotals = $this->calculateHolidayTotals();
+        $holidayEarnings = (float) ($holidayTotals['total'] ?? 0.0);
+        $holidayDays = (int) ($holidayTotals['days'] ?? 0);
+
+        $totalEarnings = $totalManualEarnings + $holidayEarnings;
+
+        $lateRatePerMinute = $salaryRate > 0 ? ($salaryRate / 60 / 8) : 0.0;
+        $lateAmount = (float) $totalLateMinutes * (float) $lateRatePerMinute;
 
         $periodStr = $start->toDateString() . ' - ' . $end->toDateString();
 
@@ -214,7 +258,15 @@ class CreatePayroll extends Component
             $totalDeductions,
             $totalLateMinutes,
             $lateAmount,
-            $totalEarnings
+            $totalEarnings,
+            $totalManualEarnings,
+            $holidayEntries,
+            $holidayEarnings,
+            $lateRatePerMinute,
+            $holidayDays,
+            $totalUndertimeMinutes,
+            $equivalentWorkDays,
+            $workedDays
         ) {
             // 1) Partial payroll
             $pId = DB::table('process_payroll')->insertGetId([
@@ -250,6 +302,21 @@ class CreatePayroll extends Component
                 ]);
             }
 
+            if (!empty($holidayEntries) && $holidayEarnings > 0) {
+                $holidayEarningId = $this->getHolidayEarningId();
+                if ($holidayEarningId) {
+                    foreach ($holidayEntries as $entry) {
+                        DB::table('earnings_p')->insert([
+                            'payroll_id' => $pId,
+                            'earnings_id' => $holidayEarningId,
+                            'amount' => (float) ($entry['amount'] ?? 0),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+
             // 4) Late record
             DB::table('late')->insert([
                 'payrollidd' => $pId,
@@ -274,10 +341,17 @@ class CreatePayroll extends Component
                 'total_deductions' => $totalDeductions,
                 'late_minutes' => $totalLateMinutes,
                 'late_amount' => $lateAmount,
+                'late_rate_per_minute' => $lateRatePerMinute,
+                'worked_days' => $workedDays,
+                'equivalent_days' => $equivalentWorkDays,
+                'total_undertime_minutes' => $totalUndertimeMinutes,
+                'manual_earnings' => $totalManualEarnings,
+                'holiday_earnings' => $holidayEarnings,
                 'total_earnings' => $totalEarnings,
                 'net' => $net,
                 'period' => $periodStr,
                 'process_id' => $pId,
+                'holiday_days' => $holidayDays,
             ];
         });
 
@@ -320,12 +394,259 @@ class CreatePayroll extends Component
 
         // Get all deductions for the dropdown
         $deductions = deduction::where('status', 'active')->get();
-        $earningsList = earnings::where('status', 'active')->get();
+        $earningsList = earnings::where('status', 'active')
+            ->where('earnings', '!=', 'Holiday Pay')
+            ->get();
 
         return view('livewire.create-payroll.create-payroll', [
             'users' => $users,
             'deductions' => $deductions,
             'earningsList' => $earningsList,
         ]);
+    }
+
+    protected function resetHolidayData(): void
+    {
+        $this->holidayDetails = [];
+        $this->holidayWorkSelections = [];
+        $this->holidayRatePerDay = 0.0;
+    }
+
+    protected function prepareHolidayData(bool $force = false): void
+    {
+        if (!$force && !empty($this->holidayDetails)) {
+            return;
+        }
+
+        $this->resetHolidayData();
+
+        if (!$this->selectedUserId || !$this->startDate || !$this->endDate) {
+            return;
+        }
+
+        $start = Carbon::parse($this->startDate)->startOfDay();
+        $end = Carbon::parse($this->endDate)->endOfDay();
+
+        $position = DB::table('position')->where('user_id', $this->selectedUserId)->first();
+        $salaryRate = (float) ($position->salary ?? 0);
+        $this->holidayRatePerDay = round($salaryRate * 0.30, 2);
+
+        if ($this->holidayRatePerDay <= 0) {
+            return;
+        }
+
+        $attendanceDates = Attendance::where('users_id', $this->selectedUserId)
+            ->whereBetween('timestamp', [$start, $end])
+            ->get()
+            ->map(fn ($record) => Carbon::parse($record->timestamp)->toDateString())
+            ->unique()
+            ->values();
+
+        if ($attendanceDates->isEmpty()) {
+            return;
+        }
+
+        $holidayCandidates = $this->collectHolidaysWithinRange($start, $end);
+
+        foreach ($holidayCandidates as $date => $title) {
+            if (!$attendanceDates->contains($date)) {
+                continue;
+            }
+
+            $this->holidayDetails[$date] = [
+                'title' => $title,
+                'amount' => $this->holidayRatePerDay,
+            ];
+
+            if (!array_key_exists($date, $this->holidayWorkSelections)) {
+                $this->holidayWorkSelections[$date] = true;
+            }
+        }
+
+        $this->holidayWorkSelections = array_filter(
+            $this->holidayWorkSelections,
+            fn ($value, $date) => isset($this->holidayDetails[$date]),
+            ARRAY_FILTER_USE_BOTH
+        );
+    }
+
+    protected function getSelectedHolidayEntries(): array
+    {
+        if (empty($this->holidayDetails)) {
+            return [];
+        }
+
+        $entries = [];
+
+        foreach ($this->holidayDetails as $date => $detail) {
+            if (!empty($this->holidayWorkSelections[$date])) {
+                $entries[$date] = $detail;
+            }
+        }
+
+        return $entries;
+    }
+
+    #[Computed]
+    public function holidayTotals(): array
+    {
+        $entries = $this->getSelectedHolidayEntries();
+        $total = 0.0;
+
+        foreach ($entries as $entry) {
+            $total += (float) ($entry['amount'] ?? 0);
+        }
+
+        return [
+            'days' => count($entries),
+            'total' => $total,
+        ];
+    }
+
+    protected function calculateHolidayTotals(): array
+    {
+        return $this->holidayTotals;
+    }
+
+    protected function getHolidayEarningId(): ?int
+    {
+        if (!$this->selectedUserId) {
+            return null;
+        }
+
+        $earning = earnings::withTrashed()->firstOrCreate(
+            [
+                'users_id' => $this->selectedUserId,
+                'earnings' => 'Holiday Pay',
+            ],
+            [
+                'status' => 'active',
+            ]
+        );
+
+        return (int) $earning->id;
+    }
+
+    protected function collectHolidaysWithinRange(Carbon $start, Carbon $end): array
+    {
+        $holidays = [];
+
+        $dbHolidays = CalendarHoliday::active()->get();
+        foreach ($dbHolidays as $holiday) {
+            $dates = $this->expandHolidayRecordDates($holiday, $start, $end);
+            foreach ($dates as $date) {
+                $holidays[$date] = $holiday->title ?? 'Holiday';
+            }
+        }
+
+        $builtinHolidays = $this->builtinHolidayDatesBetween($start, $end);
+        foreach ($builtinHolidays as $date => $title) {
+            if (!isset($holidays[$date])) {
+                $holidays[$date] = $title;
+            }
+        }
+
+        ksort($holidays);
+
+        return $holidays;
+    }
+
+    protected function expandHolidayRecordDates($holiday, Carbon $start, Carbon $end): array
+    {
+        $dates = [];
+        $base = Carbon::parse($holiday->date);
+
+        if ($holiday->repeat_type === 'yearly') {
+            for ($year = $start->year; $year <= $end->year; $year++) {
+                $candidate = $base->copy()->year($year);
+                if ($candidate->betweenIncluded($start, $end)) {
+                    $dates[] = $candidate->toDateString();
+                }
+            }
+        } elseif ($holiday->repeat_type === 'monthly') {
+            $cursor = $start->copy()->day($base->day);
+            while ($cursor->lessThanOrEqualTo($end)) {
+                if ($cursor->betweenIncluded($start, $end)) {
+                    $dates[] = $cursor->toDateString();
+                }
+                $cursor->addMonth();
+            }
+        } else {
+            if ($base->betweenIncluded($start, $end)) {
+                $dates[] = $base->toDateString();
+            }
+        }
+
+        return $dates;
+    }
+
+    protected function builtinHolidayDatesBetween(Carbon $start, Carbon $end): array
+    {
+        $holidays = [];
+
+        for ($year = $start->year; $year <= $end->year; $year++) {
+            foreach ($this->generatePhilippineHolidays($year) as $date => $title) {
+                $dateObj = Carbon::parse($date);
+                if ($dateObj->betweenIncluded($start, $end)) {
+                    $holidays[$dateObj->toDateString()] = $title;
+                }
+            }
+        }
+
+        return $holidays;
+    }
+
+    protected function generatePhilippineHolidays(int $year): array
+    {
+        $holidays = [
+            "$year-01-01" => "New Year's Day",
+            "$year-04-09" => 'Araw ng Kagitingan',
+            "$year-05-01" => 'Labor Day',
+            "$year-06-12" => 'Independence Day',
+            "$year-08-21" => 'Ninoy Aquino Day',
+            $this->lastMondayOfAugust($year) => 'National Heroes Day',
+            "$year-11-01" => "All Saints' Day",
+            "$year-11-02" => "All Souls' Day",
+            "$year-11-30" => 'Bonifacio Day',
+            "$year-12-08" => 'Feast of the Immaculate Conception',
+            "$year-12-25" => 'Christmas Day',
+            "$year-12-30" => 'Rizal Day',
+        ];
+
+        $easter = $this->easterDate($year);
+        $holidays[$easter->copy()->subDays(3)->format('Y-m-d')] = 'Maundy Thursday';
+        $holidays[$easter->copy()->subDays(2)->format('Y-m-d')] = 'Good Friday';
+
+        return $holidays;
+    }
+
+    protected function lastMondayOfAugust(int $year): string
+    {
+        $date = Carbon::create($year, 8, 31);
+        while ($date->dayOfWeek !== Carbon::MONDAY) {
+            $date->subDay();
+        }
+
+        return $date->format('Y-m-d');
+    }
+
+    protected function easterDate(int $year): Carbon
+    {
+        $a = $year % 19;
+        $b = intdiv($year, 100);
+        $c = $year % 100;
+        $d = intdiv($b, 4);
+        $e = $b % 4;
+        $f = intdiv($b + 8, 25);
+        $g = intdiv($b - $f + 1, 3);
+        $h = (19 * $a + $b - $d - $g + 15) % 30;
+        $i = intdiv($c, 4);
+        $k = $c % 4;
+        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
+        $m = intdiv($a + 11 * $h + 22 * $l, 451);
+        $month = intdiv($h + $l - 7 * $m + 114, 31);
+        $day = (($h + $l - 7 * $m + 114) % 31) + 1;
+
+        return Carbon::create($year, $month, $day);
     }
 }
