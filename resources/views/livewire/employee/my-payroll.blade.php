@@ -248,6 +248,29 @@
                             </div>
                         </div>
                     </div>
+
+                    @if(isset($payslipData['summaryExtras']))
+                        <div class="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <div class="flex justify-between">
+                                <span>No. of Working Days (Biometric):</span>
+                                <span class="font-medium text-gray-900 dark:text-white">
+                                    {{ number_format(data_get($payslipData['summaryExtras'], 'worked_days', 0), 0) }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Equivalent Paid Days:</span>
+                                <span class="font-medium text-gray-900 dark:text-white">
+                                    {{ number_format(data_get($payslipData['summaryExtras'], 'equivalent_days', 0), 2) }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Total Undertime Minutes:</span>
+                                <span class="font-medium text-gray-900 dark:text-white">
+                                    {{ number_format(data_get($payslipData['summaryExtras'], 'total_undertime_minutes', 0)) }}
+                                </span>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endif

@@ -93,6 +93,60 @@ class MyPayroll extends Component
         $this->payslipData['finalPayroll'] = DB::table('f_payroll')
             ->where('p_id', $this->selectedPayrollId)
             ->first();
+
+        $this->payslipData['summaryExtras'] = $this->buildSummaryExtras(
+            $this->payslipData['payroll'],
+            $userId
+        );
+    }
+
+    private function buildSummaryExtras($payrollRow, int $userId): ?array
+    {
+        if (!$payrollRow || empty($payrollRow->period)) {
+            return null;
+        }
+
+        $periodParts = explode(' - ', $payrollRow->period);
+        if (count($periodParts) < 2) {
+            return null;
+        }
+
+        try {
+            $start = Carbon::parse(trim($periodParts[0]))->startOfDay();
+            $end = Carbon::parse(trim(end($periodParts)))->endOfDay();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $attendance = DB::table('attendance')
+            ->where('users_id', $userId)
+            ->whereBetween('timestamp', [$start, $end])
+            ->get();
+
+        if ($attendance->isEmpty()) {
+            return null;
+        }
+
+        $workedDays = $attendance
+            ->map(fn ($row) => Carbon::parse($row->timestamp)->toDateString())
+            ->unique()
+            ->count();
+
+        $totalUndertimeMinutes = (int) $attendance->sum(function ($row) {
+            return (int) ($row->undertime_minutes ?? 0);
+        });
+
+        $potentialWorkMinutes = $workedDays * 8 * 60;
+        $earnedMinutes = max(0, $potentialWorkMinutes - $totalUndertimeMinutes);
+        $equivalentDays = $potentialWorkMinutes > 0
+            ? round($earnedMinutes / (8 * 60), 2)
+            : 0.0;
+
+        return [
+            'worked_days' => $workedDays,
+            'equivalent_days' => $equivalentDays,
+            'total_undertime_minutes' => $totalUndertimeMinutes,
+        ];
     }
 
     public function mount()
@@ -120,7 +174,8 @@ class MyPayroll extends Component
                 'f_payroll.net',
                 'late.late as late_minutes',
                 'late.amount as late_amount'
-            ]);
+            ])
+            ->distinct();
 
         // Apply search filter
         if (!empty($this->search)) {

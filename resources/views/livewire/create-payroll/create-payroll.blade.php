@@ -371,37 +371,6 @@
                     </div>
                 </div>
 
-                <div class="border rounded-lg p-4">
-                    <h3 class="font-medium mb-3">Dates Without Attendance</h3>
-                    @if($selectedUser && count($missingDates) > 0)
-                        <div x-data="{ selections: @js(collect($missingDates)->mapWithKeys(fn($d) => [$d => 'Absent'])) }" class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="bg-foreground/5 border-b border-foreground/10">
-                                    <tr>
-                                        <th class="p-3 text-left font-medium w-56">Date</th>
-                                        <th class="p-3 text-left font-medium">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($missingDates as $noDataDate)
-                                        <tr class="border-b border-foreground/5">
-                                            <td class="p-3 whitespace-nowrap">{{ \Carbon\Carbon::parse($noDataDate)->format('M d, Y') }}</td>
-                                            <td class="p-3">
-                                                <select x-model="selections['{{ $noDataDate }}']" class="h-9 rounded-md border bg-background px-3 py-1.5">
-                                                    <option value="Absent">Absent</option>
-                                                    <option value="Leave without pay">Leave without pay</option>
-                                                    <option value="Leave with pay">Leave with pay</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="text-sm opacity-70">All dates in the selected range have attendance. No missing dates to display.</div>
-                    @endif
-                </div>
             @endif
             <!-- Add Deduction Section -->
             <div class="border rounded-lg p-4">
@@ -497,6 +466,75 @@
                     </div>
                 @endif
             </div>
+
+            @if(count($holidayDetails) > 0)
+                @php
+                    $holidayTotals = $this->holidayTotals;
+                @endphp
+                <div class="border rounded-lg p-4 space-y-4">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h3 class="font-medium flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M8 12h8"></path>
+                                    <path d="M12 8v8"></path>
+                                </svg>
+                                Holiday Work Earnings
+                            </h3>
+                            <p class="text-sm text-muted-foreground">
+                                Employees earn an extra 30% of their daily rate (₱{{ number_format($holidayRatePerDay, 2) }}) for every approved holiday they attended.
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs uppercase opacity-70">Selected Bonus</div>
+                            <div class="text-2xl font-semibold text-success">₱{{ number_format($holidayTotals['total'] ?? 0, 2) }}</div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ $holidayTotals['days'] ?? 0 }} {{ ($holidayTotals['days'] ?? 0) === 1 ? 'holiday' : 'holidays' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-foreground/10 rounded-md overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-foreground/5 border-b border-foreground/10">
+                                    <tr>
+                                        <th class="p-3 text-left font-medium">Date &amp; Holiday</th>
+                                        <th class="p-3 text-center font-medium w-40">Bonus Amount</th>
+                                        <th class="p-3 text-center font-medium w-32">Include</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($holidayDetails as $date => $detail)
+                                        <tr class="border-b border-foreground/5">
+                                            <td class="p-3">
+                                                <div class="font-medium">{{ $detail['title'] }}</div>
+                                                <div class="text-xs text-muted-foreground">{{ \Carbon\Carbon::parse($date)->format('M d, Y (D)') }}</div>
+                                            </td>
+                                            <td class="p-3 text-center font-semibold text-success">
+                                                ₱{{ number_format($detail['amount'], 2) }}
+                                            </td>
+                                            <td class="p-3 text-center">
+                                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        class="size-4 rounded border-foreground/40 text-primary focus:ring-primary"
+                                                        @checked($holidayWorkSelections[$date] ?? false)
+                                                        wire:change="updateHolidaySelection('{{ $date }}', $event.target.checked)"
+                                                    >
+                                                    <span class="text-xs text-muted-foreground">
+                                                        {{ ($holidayWorkSelections[$date] ?? false) ? 'Included' : 'Excluded' }}
+                                                    </span>
+                                                </label>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <!-- Add Earnings Section -->
             <div class="border rounded-lg p-4">
@@ -639,9 +677,18 @@
                     <tbody>
                         <tr><td class="p-2">Gross Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['partial'] ?? 0, 2) }}</td></tr>
                         <tr><td class="p-2">Total Deductions</td><td class="p-2 text-right">₱{{ number_format($processedSummary['total_deductions'] ?? 0, 2) }}</td></tr>
+                        <tr><td class="p-2">Biometric Days Logged</td><td class="p-2 text-right">{{ number_format($processedSummary['worked_days'] ?? 0, 0) }}</td></tr>
+                        <tr><td class="p-2">Equivalent Paid Days</td><td class="p-2 text-right">{{ number_format($processedSummary['equivalent_days'] ?? 0, 2) }}</td></tr>
+                        <tr><td class="p-2">Undertime Minutes</td><td class="p-2 text-right">{{ number_format($processedSummary['total_undertime_minutes'] ?? 0) }}</td></tr>
                         <tr><td class="p-2">Late Minutes</td><td class="p-2 text-right">{{ $processedSummary['late_minutes'] ?? 0 }}</td></tr>
                         <tr><td class="p-2">Late Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['late_amount'] ?? 0, 2) }}</td></tr>
-                        <tr><td class="p-2">Other Pay</td><td class="p-2 text-right">₱{{ number_format($processedSummary['total_earnings'] ?? 0, 2) }}</td></tr>
+                        <tr><td class="p-2">Late Rate / Minute</td><td class="p-2 text-right">₱{{ number_format($processedSummary['late_rate_per_minute'] ?? 0, 2) }}</td></tr>
+                        <tr><td class="p-2">Manual Earnings</td><td class="p-2 text-right">₱{{ number_format($processedSummary['manual_earnings'] ?? 0, 2) }}</td></tr>
+                        <tr>
+                            <td class="p-2">Holiday Earnings ({{ $processedSummary['holiday_days'] ?? 0 }} {{ ($processedSummary['holiday_days'] ?? 0) === 1 ? 'day' : 'days' }})</td>
+                            <td class="p-2 text-right">₱{{ number_format($processedSummary['holiday_earnings'] ?? 0, 2) }}</td>
+                        </tr>
+                        <tr><td class="p-2">Total Additional Pay</td><td class="p-2 text-right">₱{{ number_format($processedSummary['total_earnings'] ?? 0, 2) }}</td></tr>
                         <tr class="font-medium"><td class="p-2">Net Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['net'] ?? 0, 2) }}</td></tr>
                     </tbody>
                 </table>
