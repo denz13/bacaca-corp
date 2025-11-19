@@ -124,6 +124,9 @@ class RouteController extends Controller
         if (view()->exists($key . '.index-work-schedule')) {
             return view($key . '.index-work-schedule');
         }
+        if (view()->exists($key . '.index-leave-management')) {
+            return view($key . '.index-leave-management');
+        }
         if (view()->exists($key . '.index-create-payroll')) {
             return view($key . '.index-create-payroll');
         }

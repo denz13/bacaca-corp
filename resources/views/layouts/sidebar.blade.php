@@ -145,15 +145,18 @@
                                 </li>
                             </ul>
                         </li> -->
-                        <li x-data="sideMenuDropdown({ open: {{ request()->is('create-payroll*') ? 'true' : 'false' }} })">
+                        <li x-data="sideMenuDropdown({ open: {{ request()->is('create-payroll*') || request()->is('leave-management*') || request()->is('earnings-management*') || request()->is('deduction-management*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
                                 <div class="side-menu__link__title">Payroll Management</div>
                                 <i data-lucide="chevron-down" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__chevron transition" :class="{ 'rotate-180': open }"></i>
                             </a>
-                            <ul class="{{ request()->is('create-payroll*') || request()->is('earnings-management*') || request()->is('deduction-management*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
+                            <ul class="{{ request()->is('create-payroll*') || request()->is('leave-management*') || request()->is('earnings-management*') || request()->is('deduction-management*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
                                 <li>
                                     <x-menu.sidebar-submenu-item href="create-payroll" icon="panel-bottom-close" :text="__('Create Payroll')" />
+                                </li>
+                                <li>
+                                    <x-menu.sidebar-submenu-item href="leave-management" icon="panel-bottom-close" :text="__('Leave Management')" />
                                 </li>
                                 <li>
                                     <x-menu.sidebar-submenu-item href="earnings-management" icon="panel-bottom-close" :text="__('Earnings Management')" />

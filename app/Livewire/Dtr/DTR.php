@@ -3,11 +3,13 @@
 namespace App\Livewire\Dtr;
 
 use Livewire\Component;
+use App\Models\Leave;
 use App\Models\tbl_employee_info;
 use App\Models\attendance;
 use App\Models\User;
 use App\Models\work_schedule;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class DTR extends Component
 {
@@ -78,6 +80,28 @@ class DTR extends Component
         $startDate = Carbon::parse($this->startDate)->startOfDay();
         $endDate = Carbon::parse($this->endDate)->endOfDay();
 
+        // Build leave map for quick lookups
+        $leaveMap = [];
+        $leaveRecords = Leave::query()
+            ->where('user_id', $employeeId)
+            ->whereDate('start_date', '<=', $endDate->copy()->toDateString())
+            ->whereDate('end_date', '>=', $startDate->copy()->toDateString())
+            ->get();
+
+        foreach ($leaveRecords as $leave) {
+            $period = CarbonPeriod::create(
+                Carbon::parse($leave->start_date)->startOfDay(),
+                Carbon::parse($leave->end_date)->startOfDay()
+            );
+
+            foreach ($period as $periodDate) {
+                $leaveMap[$periodDate->toDateString()] = [
+                    'reason' => $leave->reason,
+                    'leave_id' => $leave->id,
+                ];
+            }
+        }
+
         // Get all days in the date range
         $this->dtrData = [];
         $currentDate = $startDate->copy();
@@ -120,6 +144,8 @@ class DTR extends Component
             // Check if there's any attendance data for this day
             $hasAttendanceData = $records->count() > 0;
 
+            $isOnLeave = array_key_exists($dateString, $leaveMap);
+
             $this->dtrData[] = [
                 'day' => $day,
                 'date' => $dateString,
@@ -132,6 +158,8 @@ class DTR extends Component
                 'late' => $late,
                 'is_weekend' => $isWeekend,
                 'has_attendance_data' => $hasAttendanceData,
+                'is_on_leave' => $isOnLeave,
+                'leave_reason' => $isOnLeave ? ($leaveMap[$dateString]['reason'] ?? null) : null,
                 'scheduled' => [
                     'am_in' => $scheduledTimeIn,
                     'am_out' => $scheduledTimeOut,
