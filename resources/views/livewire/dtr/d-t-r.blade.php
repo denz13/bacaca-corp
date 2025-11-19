@@ -231,10 +231,23 @@
                         </thead>
                         <tbody>
                             @foreach($dtrData as $record)
-                            <tr class="[&:hover>td]:before:bg-accent [&:hover>td]:relative [&:hover>td]:before:absolute [&:hover>td]:before:inset-0 [&:hover>td]:before:z-[-1] [&:hover>td]:before:blur-lg">
-                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center">{{ $record['day'] }}</td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 relative text-center overflow-hidden {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning In" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Morning In')" @endif>
-                                    @if($record['is_weekend'] && !$record['has_attendance_data'])
+                            @php
+                                $isWeekendLocked = $record['is_weekend'] && !$record['has_attendance_data'];
+                                $isCellDisabled = $isWeekendLocked || $record['is_on_leave'];
+                            @endphp
+                            <tr class="[&:hover>td]:before:bg-accent [&:hover>td]:relative [&:hover>td]:before:absolute [&:hover>td]:before:inset-0 [&:hover>td]:before:z-[-1] [&:hover>td]:before:blur-lg {{ $record['is_on_leave'] ? 'bg-primary/5' : '' }}">
+                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center font-semibold">{{ $record['day'] }}</td>
+                                <td class="border border-slate-200 dark:border-darkmode-400 relative text-center overflow-hidden {{ $isCellDisabled ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning In" @if(!$isCellDisabled) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Morning In')" @endif>
+                                    @if($record['is_on_leave'])
+                                        <span class="absolute inset-0 flex flex-col items-center justify-center font-semibold text-primary uppercase tracking-[0.3em] text-[11px] pointer-events-none whitespace-nowrap">
+                                            ON LEAVE
+                                            @if($record['leave_reason'])
+                                                <span class="text-[10px] tracking-normal mt-1 text-muted-foreground normal-case">
+                                                    {{ \Illuminate\Support\Str::limit($record['leave_reason'], 22) }}
+                                                </span>
+                                            @endif
+                                        </span>
+                                    @elseif($isWeekendLocked)
                                         <span class="absolute inset-0 flex items-center justify-center font-semibold text-red-600 uppercase tracking-[0.2em] text-xs pointer-events-none whitespace-nowrap">
                                             {{ strtoupper($record['day_name']) }}
                                         </span>
@@ -242,28 +255,38 @@
                                         {{ $record['am_in'] }}
                                     @endif
                                 </td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning Out" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Morning Out')" @endif>
-                                    @if(!($record['is_weekend'] && !$record['has_attendance_data']) && $record['am_out'])
+                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center relative {{ $isCellDisabled ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Morning Out" @if(!$isCellDisabled) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Morning Out')" @endif>
+                                    @if($record['is_on_leave'])
+                                        <span class="text-xs font-semibold text-primary">On Leave</span>
+                                    @elseif(!$isWeekendLocked && $record['am_out'])
                                         {{ $record['am_out'] }}
                                     @endif
                                 </td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 text-center {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon In" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Afternoon In')" @endif>
-                                    @if(!($record['is_weekend'] && !$record['has_attendance_data']) && $record['pm_in'])
+                                <td class="border border-slate-200 dark:border-darkmode-400 text-center relative {{ $isCellDisabled ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon In" @if(!$isCellDisabled) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Afternoon In')" @endif>
+                                    @if($record['is_on_leave'])
+                                        <span class="text-xs font-semibold text-primary">On Leave</span>
+                                    @elseif(!$isWeekendLocked && $record['pm_in'])
                                         {{ $record['pm_in'] }}
                                     @endif
                                 </td>
-                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon Out" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Afternoon Out')" @endif>
-                                    @if(!($record['is_weekend'] && !$record['has_attendance_data']) && $record['pm_out'])
+                                <td class="border border-slate-200 dark:border-darkmode-400 border-r-2 text-center relative {{ $isCellDisabled ? '' : 'cursor-pointer hover:bg-foreground/5' }}" style="width: 80px;" data-just="0" data-date="{{ $record['date'] }}" data-when="Afternoon Out" @if(!$isCellDisabled) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Afternoon Out')" @endif>
+                                    @if($record['is_on_leave'])
+                                        <span class="text-xs font-semibold text-primary">On Leave</span>
+                                    @elseif(!$isWeekendLocked && $record['pm_out'])
                                         {{ $record['pm_out'] }}
                                     @endif
                                 </td>
-                                <td class="text-danger text-center border border-slate-200 dark:border-darkmode-400 {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Undertime')" @endif>
-                                    @if($record['undertime'] > 0)
+                                <td class="text-danger text-center border border-slate-200 dark:border-darkmode-400 relative {{ $isCellDisabled ? '' : 'cursor-pointer hover:bg-foreground/5' }}" @if(!$isCellDisabled) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Undertime')" @endif>
+                                    @if($record['is_on_leave'])
+                                        <span class="text-xs font-semibold text-primary">On Leave</span>
+                                    @elseif($record['undertime'] > 0)
                                         {{ $record['undertime'] }}
                                     @endif
                                 </td>
-                                <td class="text-danger text-center border border-slate-200 dark:border-darkmode-400 {{ ($record['is_weekend'] && !$record['has_attendance_data']) ? '' : 'cursor-pointer hover:bg-foreground/5' }}" @if(!($record['is_weekend'] && !$record['has_attendance_data'])) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Late')" @endif>
-                                    @if($record['late'] > 0)
+                                <td class="text-danger text-center border border-slate-200 dark:border-darkmode-400 relative {{ $isCellDisabled ? '' : 'cursor-pointer hover:bg-foreground/5' }}" @if(!$isCellDisabled) wire:click="openAttendanceModal('{{ $record['date'] }}', 'Late')" @endif>
+                                    @if($record['is_on_leave'])
+                                        <span class="text-xs font-semibold text-primary">On Leave</span>
+                                    @elseif($record['late'] > 0)
                                         {{ $record['late'] }}
                                     @endif
                                 </td>
