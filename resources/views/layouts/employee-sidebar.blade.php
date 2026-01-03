@@ -14,9 +14,32 @@
                                 ->where('module_id', 1)
                                 ->where('status', 'active')
                                 ->first();
-                            $logoPath = $sidebarLogo ? $sidebarLogo->value : 'dist/images/logo.svg';
+                            
+                            if ($sidebarLogo && $sidebarLogo->value) {
+                                // If the path doesn't start with 'storage/', add it
+                                $logoValue = $sidebarLogo->value;
+                                if (!str_starts_with($logoValue, 'storage/') && !str_starts_with($logoValue, 'dist/') && !str_starts_with($logoValue, 'http')) {
+                                    $logoPath = 'storage/' . ltrim($logoValue, '/');
+                                } else {
+                                    $logoPath = $logoValue;
+                                }
+                                
+                                // Check if file exists, otherwise use default
+                                if (!file_exists(public_path($logoPath))) {
+                                    $logoPath = null;
+                                }
+                            } else {
+                                $logoPath = null;
+                            }
+                            
+                            // Default PNG logo as data URI if no logo path
+                            $defaultLogoSvg = 'data:image/png;base64,' . base64_encode(file_get_contents(resource_path('images/bacaca.png')));
                         @endphp
-                        <img class="size-12" src="{{ asset($logoPath) }}">
+                        @if($logoPath)
+                            <img class="size-12" src="{{ asset($logoPath) }}" alt="Logo" onerror="this.src='{{ $defaultLogoSvg }}'">
+                        @else
+                            <img class="size-12" src="{{ $defaultLogoSvg }}" alt="Logo">
+                        @endif
                         <div class="ml-3.5 text-nowrap transition-opacity group-[.side-menu--collapsed.side-menu--on-hover]:xl:opacity-100 group-[.side-menu--collapsed]:xl:opacity-0">
                             @php
                                 $sidebarTextLogo = \App\Models\system_settings::where('key', 'sidebar_text_logo')

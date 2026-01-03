@@ -47,7 +47,23 @@ License: You must have a valid license purchased only from themeforest(the above
                                     ->where('module_id', 6)
                                     ->where('status', 'active')
                                     ->first();
-                                $topLogoPath = $loginTopLogo ? asset('storage/' . $loginTopLogo->value) : asset('assets/dist/images/logo.svg');
+                                
+                                if ($loginTopLogo && $loginTopLogo->value) {
+                                    $logoValue = $loginTopLogo->value;
+                                    if (!str_starts_with($logoValue, 'storage/') && !str_starts_with($logoValue, 'assets/') && !str_starts_with($logoValue, 'http')) {
+                                        $logoPath = 'storage/' . ltrim($logoValue, '/');
+                                    } else {
+                                        $logoPath = $logoValue;
+                                    }
+                                    
+                                    if (file_exists(public_path($logoPath))) {
+                                        $topLogoPath = asset($logoPath);
+                                    } else {
+                                        $topLogoPath = 'data:image/png;base64,' . base64_encode(file_get_contents(resource_path('images/bacaca.png')));
+                                    }
+                                } else {
+                                    $topLogoPath = 'data:image/png;base64,' . base64_encode(file_get_contents(resource_path('images/bacaca.png')));
+                                }
                             @endphp
                             <img class="w-6" src="{{ $topLogoPath }}" alt="Login Logo">
                             @php
@@ -69,7 +85,23 @@ License: You must have a valid license purchased only from themeforest(the above
                                     ->where('module_id', 3)
                                     ->where('status', 'active')
                                     ->first();
-                                $centerLogoPath = $loginCenterLogo ? asset('storage/' . $loginCenterLogo->value) : asset('assets/dist/images/illustration.svg');
+                                
+                                if ($loginCenterLogo && $loginCenterLogo->value) {
+                                    $logoValue = $loginCenterLogo->value;
+                                    if (!str_starts_with($logoValue, 'storage/') && !str_starts_with($logoValue, 'assets/') && !str_starts_with($logoValue, 'http')) {
+                                        $logoPath = 'storage/' . ltrim($logoValue, '/');
+                                    } else {
+                                        $logoPath = $logoValue;
+                                    }
+                                    
+                                    if (file_exists(public_path($logoPath))) {
+                                        $centerLogoPath = asset($logoPath);
+                                    } else {
+                                        $centerLogoPath = 'data:image/png;base64,' . base64_encode(file_get_contents(resource_path('images/bacaca.png')));
+                                    }
+                                } else {
+                                    $centerLogoPath = 'data:image/png;base64,' . base64_encode(file_get_contents(resource_path('images/bacaca.png')));
+                                }
                             @endphp
                             <img class="-mt-16 w-1/2" src="{{ $centerLogoPath }}" alt="Login Illustration">
                             @php
