@@ -23,7 +23,14 @@ class PayrollController extends Controller
         }
 
         $userId = $payroll->empid;
-        $employee = tbl_employee_info::find($userId);
+        $employee = tbl_employee_info::with('positionInfo')->find($userId);
+
+        if (!$employee) {
+            abort(404, 'Employee record not found');
+        }
+
+        $salaryRate = (float) ($employee->salary ?? 0);
+        $lateRatePerMinute = $salaryRate > 0 ? ($salaryRate / 60 / 8) : 0.0;
 
         // Get deductions
         $deductions = DB::table('deductions')
@@ -50,6 +57,9 @@ class PayrollController extends Controller
             ->first();
 
         $summaryExtras = $this->buildSummaryExtras($payroll, $userId);
+        
+        $undertimeAmount = (float) (data_get($summaryExtras, 'total_undertime_minutes', 0) * $lateRatePerMinute);
+        $overtimeAmount = (float) (data_get($summaryExtras, 'total_overtime_minutes', 0) * $lateRatePerMinute);
 
         $data = [
             'payroll' => $payroll,
@@ -59,6 +69,8 @@ class PayrollController extends Controller
             'lateInfo' => $lateInfo,
             'finalPayroll' => $finalPayroll,
             'summaryExtras' => $summaryExtras,
+            'undertimeAmount' => $undertimeAmount,
+            'overtimeAmount' => $overtimeAmount,
         ];
 
         $pdf = Pdf::loadView('pdf.payslip-pdf', $data);

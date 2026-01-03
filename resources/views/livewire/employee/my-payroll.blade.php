@@ -212,6 +212,26 @@
                     </div>
                 @endif
 
+                @if(isset($payslipData['undertimeAmount']) && $payslipData['undertimeAmount'] > 0)
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Undertime Deduction</h3>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Undertime Minutes: {{ data_get($payslipData['summaryExtras'], 'total_undertime_minutes', 0) }}</span>
+                            <span class="font-medium text-red-600">₱{{ number_format($payslipData['undertimeAmount'], 2) }}</span>
+                        </div>
+                    </div>
+                @endif
+
+                @if(isset($payslipData['overtimeAmount']) && $payslipData['overtimeAmount'] > 0)
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Overtime Pay</h3>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Overtime Minutes: {{ data_get($payslipData['summaryExtras'], 'total_overtime_minutes', 0) }}</span>
+                            <span class="font-medium text-green-600">₱{{ number_format($payslipData['overtimeAmount'], 2) }}</span>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Summary -->
                 <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                     <div class="space-y-2">
@@ -223,7 +243,7 @@
                         @if($payslipData['earnings'] && count($payslipData['earnings']) > 0)
                             <div class="flex justify-between items-center">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Total Earnings:</span>
-                                <span class="font-medium text-green-600">₱{{ number_format($payslipData['earnings']->sum('amount'), 2) }}</span>
+                                <span class="font-medium text-green-600">₱{{ number_format($payslipData['earnings']->sum('amount') + ($payslipData['overtimeAmount'] ?? 0), 2) }}</span>
                             </div>
                         @endif
 
@@ -238,6 +258,20 @@
                             <div class="flex justify-between items-center">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Late Deduction:</span>
                                 <span class="font-medium text-red-600">₱{{ number_format($payslipData['lateInfo']->amount, 2) }}</span>
+                            </div>
+                        @endif
+
+                        @if(isset($payslipData['undertimeAmount']) && $payslipData['undertimeAmount'] > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Undertime Deduction:</span>
+                                <span class="font-medium text-red-600">₱{{ number_format($payslipData['undertimeAmount'], 2) }}</span>
+                            </div>
+                        @endif
+
+                        @if(isset($payslipData['overtimeAmount']) && $payslipData['overtimeAmount'] > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Overtime Pay:</span>
+                                <span class="font-medium text-green-600">₱{{ number_format($payslipData['overtimeAmount'], 2) }}</span>
                             </div>
                         @endif
 

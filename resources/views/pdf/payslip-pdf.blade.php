@@ -67,6 +67,7 @@
         <h3 class="header-title font-bold">Payslip</h3>
         <p class="header-info font-bold">Payroll Period: {{ $payroll->period ?? 'N/A' }}</p>
         <p class="header-info font-bold">Employee Name: {{ strtoupper(($employee->firstname ?? '') . ' ' . ($employee->lastname ?? '')) }}</p>
+        <p class="header-info font-bold">Nature: {{ $employee->positionInfo->nature ?? 'N/A' }}</p>
     </div>
 
     <!-- The rest remains consistent with the modal layout as per previous request -->
@@ -104,6 +105,26 @@
         </div>
     @endif
 
+        @if(isset($undertimeAmount) && $undertimeAmount > 0)
+            <div class="mb-4">
+                <h3 class="font-bold border-b py-2">Undertime Deduction</h3>
+                <div class="flex-between py-2 border-b">
+                    <span>Undertime Minutes: {{ data_get($summaryExtras, 'total_undertime_minutes', 0) }}</span>
+                    <span class="text-red">&#8369;{{ number_format($undertimeAmount, 2) }}</span>
+                </div>
+            </div>
+        @endif
+
+        @if(isset($overtimeAmount) && $overtimeAmount > 0)
+            <div class="mb-4">
+                <h3 class="font-bold border-b py-2">Overtime Pay</h3>
+                <div class="flex-between py-2 border-b">
+                    <span>Overtime Minutes: {{ data_get($summaryExtras, 'total_overtime_minutes', 0) }}</span>
+                    <span class="text-green">&#8369;{{ number_format($overtimeAmount, 2) }}</span>
+                </div>
+            </div>
+        @endif
+
     <div class="bg-gray-50 p-4 rounded-lg">
         <div class="flex-between mb-2">
             <span>Basic Pay:</span>
@@ -116,6 +137,11 @@
                 <span class="text-green">&#8369;{{ number_format($earnings->sum('amount'), 2) }}</span>
             </div>
         @endif
+
+        <div class="flex-between mb-2 font-bold border-t pt-2">
+            <span>Gross Pay:</span>
+            <span>&#8369;{{ number_format(($payroll->partial ?? 0) + ($earnings ? $earnings->sum('amount') : 0) + ($overtimeAmount ?? 0), 2) }}</span>
+        </div>
 
         @if($deductions && count($deductions) > 0)
             <div class="flex-between mb-2">
@@ -131,6 +157,20 @@
             </div>
         @endif
 
+        @if(isset($undertimeAmount) && $undertimeAmount > 0)
+            <div class="flex-between mb-2">
+                <span>Undertime Deduction:</span>
+                <span class="text-red">&#8369;{{ number_format($undertimeAmount, 2) }}</span>
+            </div>
+        @endif
+
+        @if(isset($overtimeAmount) && $overtimeAmount > 0)
+            <div class="flex-between mb-2">
+                <span>Overtime Pay:</span>
+                <span class="text-green">&#8369;{{ number_format($overtimeAmount, 2) }}</span>
+            </div>
+        @endif
+
         <div class="border-t pt-2 mt-2">
             <div class="flex-between">
                 <span class="text-lg font-bold">Net Pay:</span>
@@ -140,12 +180,12 @@
 
         @if(isset($summaryExtras))
             <div class="mt-4 text-sm text-gray">
-                <div class="flex-between">
+                <!-- <div class="flex-between">
                     <span>No. of Working Days (Biometric):</span>
                     <span class="font-bold">{{ number_format(data_get($summaryExtras, 'worked_days', 0), 0) }}</span>
-                </div>
+                </div> -->
                 <div class="flex-between">
-                    <span>Equivalent Paid Days:</span>
+                    <span>No. of Working Days:</span>
                     <span class="font-bold">{{ number_format(data_get($summaryExtras, 'equivalent_days', 0), 2) }}</span>
                 </div>
                 @if(data_get($summaryExtras, 'total_undertime_minutes', 0) > 0)

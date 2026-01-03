@@ -267,7 +267,17 @@ class CreatePayroll extends Component
         $userId = $this->payslipData['payroll']->empid;
         $employee = tbl_employee_info::find($userId);
 
+        if (!$employee) {
+            $this->dispatchBrowserEvent('notification', [
+                'type' => 'error',
+                'message' => 'Employee record not found',
+            ]);
+            return;
+        }
+
         $this->payslipData['employee'] = $employee;
+        $salaryRate = (float) ($employee->salary ?? 0);
+        $lateRatePerMinute = $salaryRate > 0 ? ($salaryRate / 60 / 8) : 0.0;
 
         // Get deductions
         $this->payslipData['deductions'] = DB::table('deductions')
@@ -294,6 +304,9 @@ class CreatePayroll extends Component
             ->first();
 
         $this->payslipData['summaryExtras'] = $this->buildSummaryExtras($this->payslipData['payroll'], $userId);
+        
+        $this->payslipData['undertimeAmount'] = (float) (data_get($this->payslipData['summaryExtras'], 'total_undertime_minutes', 0) * $lateRatePerMinute);
+        $this->payslipData['overtimeAmount'] = (float) (data_get($this->payslipData['summaryExtras'], 'total_overtime_minutes', 0) * $lateRatePerMinute);
     }
 
     private function buildSummaryExtras($payrollRow, int $userId): ?array
@@ -416,6 +429,8 @@ class CreatePayroll extends Component
 
         $lateRatePerMinute = $salaryRate > 0 ? ($salaryRate / 60 / 8) : 0.0;
         $lateAmount = (float) $totalLateMinutes * (float) $lateRatePerMinute;
+        $undertimeAmount = (float) $totalUndertimeMinutes * (float) $lateRatePerMinute;
+        $overtimeAmount = (float) $totalOvertimeMinutes * (float) $lateRatePerMinute;
 
         $periodStr = $start->toDateString() . ' - ' . $end->toDateString();
 
@@ -426,6 +441,8 @@ class CreatePayroll extends Component
             $totalDeductions,
             $totalLateMinutes,
             $lateAmount,
+            $undertimeAmount,
+            $overtimeAmount,
             $totalEarnings,
             $totalManualEarnings,
             $holidayEntries,
@@ -496,7 +513,7 @@ class CreatePayroll extends Component
             ]);
 
             // 5) Final payroll
-            $net = (float) $partial - (float) $totalDeductions - (float) $lateAmount + (float) $totalEarnings;
+            $net = (float) $partial - (float) $totalDeductions - (float) $lateAmount - (float) $undertimeAmount + (float) $totalEarnings + (float) $overtimeAmount;
             DB::table('f_payroll')->insert([
                 'p_id' => $pId,
                 'net' => $net,
@@ -506,22 +523,24 @@ class CreatePayroll extends Component
 
             // Expose summary
             $this->processedSummary = [
+                'process_id' => $pId,
+                'period' => $periodStr,
                 'partial' => $partial,
                 'total_deductions' => $totalDeductions,
                 'late_minutes' => $totalLateMinutes,
                 'late_amount' => $lateAmount,
+                'undertime_minutes' => $totalUndertimeMinutes,
+                'undertime_amount' => $undertimeAmount,
+                'overtime_minutes' => $totalOvertimeMinutes,
+                'overtime_amount' => $overtimeAmount,
                 'late_rate_per_minute' => $lateRatePerMinute,
                 'worked_days' => $workedDays,
                 'equivalent_days' => $equivalentWorkDays,
-                'total_undertime_minutes' => $totalUndertimeMinutes,
                 'manual_earnings' => $totalManualEarnings,
                 'holiday_earnings' => $holidayEarnings,
+                'holiday_days' => $holidayDays,
                 'total_earnings' => $totalEarnings,
                 'net' => $net,
-                'period' => $periodStr,
-                'process_id' => $pId,
-                'holiday_days' => $holidayDays,
-                'total_overtime_minutes' => $totalOvertimeMinutes,
             ];
         });
 

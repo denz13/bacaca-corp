@@ -34,4 +34,9 @@ class tbl_employee_info extends Model
     {
         return $this->hasMany(deduction::class, 'users_id');
     }
+
+    public function positionInfo()
+    {
+        return $this->belongsTo(position::class, 'position', 'pos_id');
+    }
 }

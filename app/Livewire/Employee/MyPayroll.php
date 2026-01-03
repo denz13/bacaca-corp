@@ -94,10 +94,18 @@ class MyPayroll extends Component
             ->where('p_id', $this->selectedPayrollId)
             ->first();
 
+        // Get salary rate for monetization
+        $employee = \App\Models\tbl_employee_info::find($userId);
+        $salaryRate = (float) ($employee->salary ?? 0);
+        $lateRatePerMinute = $salaryRate > 0 ? ($salaryRate / 60 / 8) : 0.0;
+
         $this->payslipData['summaryExtras'] = $this->buildSummaryExtras(
             $this->payslipData['payroll'],
             $userId
         );
+
+        $this->payslipData['undertimeAmount'] = (float) (data_get($this->payslipData['summaryExtras'], 'total_undertime_minutes', 0) * $lateRatePerMinute);
+        $this->payslipData['overtimeAmount'] = (float) (data_get($this->payslipData['summaryExtras'], 'total_overtime_minutes', 0) * $lateRatePerMinute);
     }
 
     private function buildSummaryExtras($payrollRow, int $userId): ?array
@@ -136,6 +144,10 @@ class MyPayroll extends Component
             return (int) ($row->undertime_minutes ?? 0);
         });
 
+        $totalOvertimeMinutes = (int) $attendance->sum(function ($row) {
+            return (int) ($row->overtime_minutes ?? 0);
+        });
+
         $potentialWorkMinutes = $workedDays * 8 * 60;
         $earnedMinutes = max(0, $potentialWorkMinutes - $totalUndertimeMinutes);
         $equivalentDays = $potentialWorkMinutes > 0
@@ -146,6 +158,7 @@ class MyPayroll extends Component
             'worked_days' => $workedDays,
             'equivalent_days' => $equivalentDays,
             'total_undertime_minutes' => $totalUndertimeMinutes,
+            'total_overtime_minutes' => $totalOvertimeMinutes,
         ];
     }
 
