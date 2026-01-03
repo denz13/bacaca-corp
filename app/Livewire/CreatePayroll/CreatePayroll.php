@@ -5,12 +5,13 @@ namespace App\Livewire\CreatePayroll;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Computed;
-use App\Models\User;
+use App\Models\tbl_employee_info;
 use App\Models\deduction;
 use App\Models\earnings;
 use App\Models\calendar_holiday as CalendarHoliday;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use App\Models\attendance as Attendance;
 
 class CreatePayroll extends Component
@@ -52,6 +53,12 @@ class CreatePayroll extends Component
     public bool $showSuccessModal = false;
     public array $processedSummary = [];
 
+    // Summary Stats
+    public int $totalLateMinutes = 0;
+    public int $totalUndertimeMinutes = 0;
+    public int $totalOvertimeMinutes = 0;
+    public array $missingDates = [];
+
     public function updatedStartDate(): void
     {
         $this->resetHolidayData();
@@ -81,6 +88,44 @@ class CreatePayroll extends Component
         $this->earningAmountInput = null;
 
         $this->prepareHolidayData(force: true);
+        $this->calculateSummaryStats();
+    }
+
+    protected function calculateSummaryStats(): void
+    {
+        if (!$this->selectedUserId || !$this->startDate || !$this->endDate) {
+            $this->totalLateMinutes = 0;
+            $this->totalUndertimeMinutes = 0;
+            $this->totalOvertimeMinutes = 0;
+            $this->missingDates = [];
+            return;
+        }
+
+        $start = Carbon::parse($this->startDate)->startOfDay();
+        $end = Carbon::parse($this->endDate)->endOfDay();
+
+        $attendanceInRange = Attendance::where('users_id', $this->selectedUserId)
+            ->whereBetween('timestamp', [$start, $end])
+            ->get();
+
+        $this->totalLateMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->late_minutes ?? 0));
+        $this->totalUndertimeMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->undertime_minutes ?? 0));
+        $this->totalOvertimeMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->overtime_minutes ?? 0));
+
+        // Calculate missing dates
+        $this->missingDates = [];
+        $attendanceDates = $attendanceInRange
+            ->map(fn($r) => Carbon::parse($r->timestamp)->toDateString())
+            ->unique()
+            ->values();
+
+        $period = CarbonPeriod::create($start, $end);
+        foreach ($period as $date) {
+            $dateStr = $date->toDateString();
+            if (!$attendanceDates->contains($dateStr)) {
+                $this->missingDates[] = $dateStr;
+            }
+        }
     }
     
     public function addDeduction(): void
@@ -211,10 +256,13 @@ class CreatePayroll extends Component
 
         $totalLateMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->late_minutes ?? 0));
         $totalUndertimeMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->undertime_minutes ?? 0));
+        $totalOvertimeMinutes = (int) $attendanceInRange->sum(fn ($r) => (int) ($r->overtime_minutes ?? 0));
 
-        // Get salary from position table
-        $position = DB::table('position')->where('user_id', $this->selectedUserId)->first();
-        $salaryRate = (float) ($position->salary ?? 0);
+        // Get salary from tbl_employee_info
+        $employee = tbl_employee_info::find($this->selectedUserId);
+        $salaryRate = (float) ($employee->salary ?? 0);
+        // Assuming nature is still needed, we'll try to find it in position table linked to employee id
+        $position = DB::table('position')->where('pos_id', $employee->position)->first();
         $nature = (string) ($position->nature ?? 'day');
 
         // Compute partial: salary based on nature and biometric days
@@ -266,7 +314,8 @@ class CreatePayroll extends Component
             $holidayDays,
             $totalUndertimeMinutes,
             $equivalentWorkDays,
-            $workedDays
+            $workedDays,
+            $totalOvertimeMinutes
         ) {
             // 1) Partial payroll
             $pId = DB::table('process_payroll')->insertGetId([
@@ -352,6 +401,7 @@ class CreatePayroll extends Component
                 'period' => $periodStr,
                 'process_id' => $pId,
                 'holiday_days' => $holidayDays,
+                'total_overtime_minutes' => $totalOvertimeMinutes,
             ];
         });
 
@@ -369,9 +419,9 @@ class CreatePayroll extends Component
 
         $users = null;
 
-        // Fetch all users with their attendance if date range is selected
+        // Fetch all employees with their attendance if date range is selected
         if ($this->startDate && $this->endDate) {
-            $usersQuery = User::select('id', 'name', 'employee_id', 'designation_id', 'employment_type_id', 'profile_image')
+            $usersQuery = tbl_employee_info::select('id', 'firstname', 'lastname', 'position', 'picture')
                 ->with(['attendance' => function ($query) {
                     $query->whereRaw('DATE(timestamp) >= ?', [$this->startDate])
                         ->whereRaw('DATE(timestamp) <= ?', [$this->endDate])
@@ -382,14 +432,13 @@ class CreatePayroll extends Component
             if (!empty($this->search)) {
                 $term = '%' . $this->search . '%';
                 $usersQuery->where(function ($q) use ($term) {
-                    $q->where('name', 'like', $term)
-                        ->orWhere('employee_id', 'like', $term)
-                        ->orWhere('designation_id', 'like', $term)
-                        ->orWhere('employment_type_id', 'like', $term);
+                    $q->where('firstname', 'like', $term)
+                        ->orWhere('lastname', 'like', $term)
+                        ->orWhere('position', 'like', $term);
                 });
             }
 
-            $users = $usersQuery->orderBy('name')->paginate($perPage);
+            $users = $usersQuery->orderBy('firstname')->paginate($perPage);
         }
 
         // Get all deductions for the dropdown
@@ -402,6 +451,10 @@ class CreatePayroll extends Component
             'users' => $users,
             'deductions' => $deductions,
             'earningsList' => $earningsList,
+            'totalLateMinutes' => $this->totalLateMinutes,
+            'totalUndertimeMinutes' => $this->totalUndertimeMinutes,
+            'totalOvertimeMinutes' => $this->totalOvertimeMinutes,
+            'missingDates' => $this->missingDates,
         ]);
     }
 
@@ -427,8 +480,8 @@ class CreatePayroll extends Component
         $start = Carbon::parse($this->startDate)->startOfDay();
         $end = Carbon::parse($this->endDate)->endOfDay();
 
-        $position = DB::table('position')->where('user_id', $this->selectedUserId)->first();
-        $salaryRate = (float) ($position->salary ?? 0);
+        $employee = tbl_employee_info::find($this->selectedUserId);
+        $salaryRate = (float) ($employee->salary ?? 0);
         $this->holidayRatePerDay = round($salaryRate * 0.30, 2);
 
         if ($this->holidayRatePerDay <= 0) {

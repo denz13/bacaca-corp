@@ -18,6 +18,6 @@ class earnings extends Model
     // Relation to user
     public function user()
     {
-        return $this->belongsTo(User::class, 'users_id');
+        return $this->belongsTo(tbl_employee_info::class, 'users_id');
     }
 }

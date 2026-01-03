@@ -128,7 +128,19 @@
                                 </li>
                             </ul>
                         </li>
-                        
+                        <li x-data="sideMenuDropdown({ open: {{ request()->is('registration-request*') || request()->is('registration-rejected*') || request()->is('registration-approved*') ? 'true' : 'false' }} })">
+                            <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
+                                <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>
+                                <div class="side-menu__link__title">Position Management</div>
+                                <i data-lucide="chevron-down" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__chevron transition" :class="{ 'rotate-180': open }"></i>
+                            </a>
+                            <ul class="{{ request()->is('registration-request*') || request()->is('registration-rejected*') || request()->is('registration-approved*') ? 'block' : 'hidden' }}" :class="{ 'hidden': !open }">
+                               
+                                <li>
+                                    <x-menu.sidebar-submenu-item href="position" icon="panel-bottom-close" :text="__('Position')" />
+                                </li>
+                            </ul>
+                        </li>
                         <!-- <li x-data="sideMenuDropdown({ open: {{ request()->is('admin-account*') || request()->is('student-account*') || request()->is('activity-logs*') ? 'true' : 'false' }} })">
                             <a href="javascript:;" class="side-menu__link" @click="toggle($event)">
                                 <i data-lucide="circle-gauge" class="size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25 side-menu__link__icon"></i>

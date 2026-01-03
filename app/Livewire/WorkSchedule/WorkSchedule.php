@@ -5,7 +5,7 @@ namespace App\Livewire\WorkSchedule;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\work_schedule;
-use App\Models\User;
+use App\Models\tbl_employee_info;
 
 class WorkSchedule extends Component
 {
@@ -24,7 +24,7 @@ class WorkSchedule extends Component
     public array $editSchedules = [];
 
     protected $rules = [
-        'users_id' => 'required|integer|exists:users,id',
+        'users_id' => 'required|integer|exists:tbl_employee_info,id',
         'day' => 'required|string|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
         'time_in' => 'required|date_format:H:i',
         'time_out' => 'required|date_format:H:i|after:time_in',
@@ -211,14 +211,14 @@ class WorkSchedule extends Component
     }
     public function render()
     {
-        $users = User::orderBy('name')->get(['id', 'name']);
+        $users = tbl_employee_info::orderBy('firstname')->get(['id', 'firstname', 'lastname']);
 
         $perPage = (int) request()->get('perPage', 10);
         if ($perPage <= 0) {
             $perPage = 10;
         }
 
-        $usersWithSchedulesQuery = User::with([
+        $usersWithSchedulesQuery = tbl_employee_info::with([
             'workSchedules' => function ($q) {
                 $q->orderBy('day')->orderBy('time_in');
             },
@@ -227,7 +227,8 @@ class WorkSchedule extends Component
         if (!empty($this->search)) {
             $term = '%' . $this->search . '%';
             $usersWithSchedulesQuery->where(function ($q) use ($term) {
-                $q->where('name', 'like', $term)
+                $q->where('firstname', 'like', $term)
+                  ->orWhere('lastname', 'like', $term)
                   ->orWhereHas('workSchedules', function ($wq) use ($term) {
                       $wq->where('day', 'like', $term)
                          ->orWhere('status', 'like', $term)
@@ -238,7 +239,7 @@ class WorkSchedule extends Component
         }
 
         $usersWithSchedules = $usersWithSchedulesQuery
-            ->orderBy('name')
+            ->orderBy('firstname')
             ->paginate($perPage);
 
         return view('livewire.work-schedule.work-schedule', [

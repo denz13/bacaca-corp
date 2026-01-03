@@ -136,6 +136,9 @@ class RouteController extends Controller
         if (view()->exists($key . '.index-dtr')) {
             return view($key . '.index-dtr');
         }
+        if (view()->exists($key . '.index-position')) {
+            return view($key . '.index-position');
+        }
        
         return abort(404);
     }

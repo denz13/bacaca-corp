@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\User;
+use App\Models\tbl_employee_info;
 
 class work_schedule extends Model
 {
@@ -19,6 +19,6 @@ class work_schedule extends Model
     // Relation to users
     public function users()
     {
-        return $this->belongsTo(User::class, 'users_id');
+        return $this->belongsTo(tbl_employee_info::class, 'users_id');
     }
 }

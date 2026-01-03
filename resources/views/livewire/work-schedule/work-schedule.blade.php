@@ -25,10 +25,10 @@
             <div class="box relative before:absolute before:inset-0 before:mx-3 before:-mb-3 before:border before:border-foreground/10 before:bg-background/30 before:shadow-[0px_3px_5px_#0000000b] before:z-[-1] before:rounded-xl after:absolute after:inset-0 after:border after:border-foreground/10 after:bg-background after:shadow-[0px_3px_5px_#0000000b] after:rounded-xl after:z-[-1] after:backdrop-blur-md p-0">
                 <div class="p-5">
                     <div class="image-fit h-40 overflow-hidden rounded-lg before:absolute before:left-0 before:top-0 before:z-10 before:block before:h-full before:w-full before:bg-gradient-to-t before:from-black before:to-black/10 2xl:h-56">
-                        <img class="rounded-lg" src="{{ $user->profile_image ? asset('storage/' . ltrim($user->profile_image, '/')) : asset('images/placeholders/avatar.jpg') }}" alt="{{ $user->name }}">
+                        <img class="rounded-lg" src="{{ $user->picture ? asset('storage/' . ltrim($user->picture, '/')) : asset('images/placeholders/avatar.jpg') }}" alt="{{ $user->firstname }}">
                         <div class="absolute bottom-0 z-10 px-5 pb-6 text-white">
                             <a class="block text-base font-medium" href="">
-                                {{ $user->name }}
+                                {{ $user->firstname }} {{ $user->lastname }}
                             </a>
                         </div>
                     </div>
@@ -133,7 +133,7 @@
                         <select wire:model.defer="users_id" id="ws-user" class="col-span-3 w-full rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/5">
                             <option value="">Select Employee</option>
                             @foreach($users as $u)
-                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                            <option value="{{ $u->id }}">{{ $u->firstname }} {{ $u->lastname }}</option>
                             @endforeach
                         </select>
                     </div>

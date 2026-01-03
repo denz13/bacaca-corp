@@ -13,5 +13,25 @@ class tbl_employee_info extends Model
     protected $table = 'tbl_employee_info';
     protected $primaryKey = 'id';
     public $timestamps = true;
-    protected $fillable = ['firstname', 'middlename', 'lastname', 'suffix', 'dateofbirth', 'age', 'gender', 'contact_number','email','position','position','work_schedule','salary', 'address','picture'];
+    protected $fillable = ['firstname', 'middlename', 'lastname', 'suffix', 'dateofbirth', 'age', 'gender', 'contact_number','email','position','work_schedule','salary', 'address','picture'];
+
+    public function workSchedules()
+    {
+        return $this->hasMany(work_schedule::class, 'users_id');
+    }
+
+    public function attendance()
+    {
+        return $this->hasMany(attendance::class, 'users_id');
+    }
+
+    public function earnings()
+    {
+        return $this->hasMany(earnings::class, 'users_id');
+    }
+
+    public function deductions()
+    {
+        return $this->hasMany(deduction::class, 'users_id');
+    }
 }

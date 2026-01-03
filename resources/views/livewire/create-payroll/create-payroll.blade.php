@@ -195,9 +195,7 @@
                                             <tr class="transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted border-b-0">
                                                 <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&amp;:has([role=checkbox])]:pr-0">Image</th>
                                                 <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&amp;:has([role=checkbox])]:pr-0">Name</th>
-                                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&amp;:has([role=checkbox])]:pr-0">Employee ID</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-muted-foreground [&amp;:has([role=checkbox])]:pr-0 text-center">Designation ID</th>
-                                                <th class="h-12 px-4 align-middle font-medium text-muted-foreground [&amp;:has([role=checkbox])]:pr-0 text-center">Employment Type ID</th>
+                                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&amp;:has([role=checkbox])]:pr-0">Position</th>
                                                 <th class="h-12 px-4 align-middle font-medium text-muted-foreground [&amp;:has([role=checkbox])]:pr-0 text-center">Actions</th>
                                             </tr>
                                         </thead>
@@ -210,25 +208,19 @@
                                                             <path d="m9 18 6-6-6-6"/>
                                                         </svg>
                                                         <span class="block relative size-11 flex-none overflow-hidden rounded-full border-3 ring-1 ring-(--color)/25 [--color:var(--color-primary)] bg-background">
-                                                            <img class="absolute top-0 size-full object-cover" src="{{ $user->profile_image ? asset('storage/' . ltrim($user->profile_image, '/')) : asset('images/placeholders/avatar.jpg') }}" alt="{{ $user->name }}">
+                                                            <img class="absolute top-0 size-full object-cover" src="{{ $user->picture ? asset('storage/' . ltrim($user->picture, '/')) : asset('images/placeholders/avatar.jpg') }}" alt="{{ $user->firstname }}">
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td class="shadow-[3px_3px_5px_#0000000b] box rounded-none p-4 align-middle [&amp;:has([role=checkbox])]:pr-0 border-y border-foreground/10 bg-background">
-                                                    <span class="whitespace-nowrap font-medium">{{ $user->name }}</span>
+                                                    <span class="whitespace-nowrap font-medium">{{ $user->firstname }} {{ $user->lastname }}</span>
                                                 </td>
-                                                <td class="shadow-[3px_3px_5px_#0000000b] first:rounded-l-xl last:rounded-r-xl box rounded-none p-4 align-middle [&amp;:has([role=checkbox])]:pr-0 border-y border-foreground/10 bg-background first:border-l last:border-r">
-                                                    <span class="whitespace-nowrap">{{ $user->employee_id ?? '-' }}</span>
-                                                </td>
-                                                <td class="shadow-[3px_3px_5px_#0000000b] first:rounded-l-xl last:rounded-r-xl box rounded-none p-4 align-middle [&amp;:has([role=checkbox])]:pr-0 border-y border-foreground/10 bg-background first:border-l last:border-r text-center">
-                                                    {{ $user->designation_id ?? '-' }}
-                                                </td>
-                                                <td class="shadow-[3px_3px_5px_#0000000b] first:rounded-l-xl last:rounded-r-xl box rounded-none p-4 align-middle [&amp;:has([role=checkbox])]:pr-0 border-y border-foreground/10 bg-background first:border-l last:border-r text-center">
-                                                    {{ $user->employment_type_id ?? '-' }}
+                                                <td class="shadow-[3px_3px_5px_#0000000b] box rounded-none p-4 align-middle [&amp;:has([role=checkbox])]:pr-0 border-y border-foreground/10 bg-background">
+                                                    <span class="whitespace-nowrap">{{ $user->position ?? '-' }}</span>
                                                 </td>
                                                 <td class="shadow-[3px_3px_5px_#0000000b] first:rounded-l-xl last:rounded-r-xl box rounded-none p-4 align-middle [&amp;:has([role=checkbox])]:pr-0 border-y border-foreground/10 bg-background first:border-l last:border-r">
                                                     <div class="flex items-center justify-center">
-                                                        <button wire:click="openProcessPayrollModal({{ $user->id }}, '{{ $user->name }}')" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 bg-(--color)/20 border-(--color)/60 text-(--color) hover:bg-(--color)/5 [--color:var(--color-primary)] h-9 rounded-md px-3 min-w-32" type="button">
+                                                        <button wire:click="openProcessPayrollModal({{ $user->id }}, '{{ $user->firstname }} {{ $user->lastname }}')" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 bg-(--color)/20 border-(--color)/60 text-(--color) hover:bg-(--color)/5 [--color:var(--color-primary)] h-9 rounded-md px-3 min-w-32" type="button">
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" class="lucide lucide-wallet size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25">
                                                                 <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
                                                                 <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
@@ -242,7 +234,7 @@
                                             
                                             <!-- Attendance Details Row -->
                                             <tr x-show="activeRow === {{ $user->id }}" x-collapse class="border-b-0">
-                                                <td colspan="6" class="p-0 border-y border-foreground/10">
+                                                <td colspan="4" class="p-0 border-y border-foreground/10">
                                                     <div class="p-4 bg-foreground/5">
                                                         <h4 class="font-medium mb-3">Attendance Records ({{ $user->attendance->count() }} total)</h4>
                                                         <div class="border rounded-md bg-white" style="max-height: 400px; overflow-y: scroll; overflow-x: auto;">
@@ -286,7 +278,7 @@
                                             </tr>
                                             @empty
                                             <tr>
-                                                <td colspan="6" class="p-4 text-center opacity-70">
+                                                <td colspan="4" class="p-4 text-center opacity-70">
                                                     @if($startDate && $endDate)
                                                         No employees with attendance records found for the selected date range.
                                                     @else
@@ -317,48 +309,6 @@
         :isOpen="$showProcessPayrollModal">
         
         <div class="space-y-6">
-            @php
-                $selectedUser = null;
-                if (isset($selectedUserId)) {
-                    if (isset($users) && method_exists($users, 'getCollection')) {
-                        $selectedUser = $users->getCollection()->firstWhere('id', $selectedUserId);
-                    } elseif (isset($users) && $users instanceof \Illuminate\Support\Collection) {
-                        $selectedUser = $users->firstWhere('id', $selectedUserId);
-                    }
-                }
-
-                $totalLateMinutes = 0;
-                $missingDates = [];
-
-                if ($selectedUser && ($startDate ?? null) && ($endDate ?? null)) {
-                    $start = \Carbon\Carbon::parse($startDate)->startOfDay();
-                    $end = \Carbon\Carbon::parse($endDate)->endOfDay();
-
-                    $attendanceInRange = $selectedUser->attendance->filter(function ($r) use ($start, $end) {
-                        $ts = \Carbon\Carbon::parse($r->timestamp);
-                        return $ts->between($start, $end);
-                    });
-
-                    $totalLateMinutes = (int) $attendanceInRange->sum(function ($r) {
-                        return (int) ($r->late_minutes ?? 0);
-                    });
-
-                    $attendanceDates = $attendanceInRange
-                        ->map(function ($r) {
-                            return \Carbon\Carbon::parse($r->timestamp)->toDateString();
-                        })
-                        ->unique()
-                        ->values();
-
-                    $period = \Carbon\CarbonPeriod::create($start->copy()->startOfDay(), '1 day', $end->copy()->startOfDay());
-                    foreach ($period as $date) {
-                        $dateStr = $date->toDateString();
-                        if (! $attendanceDates->contains($dateStr)) {
-                            $missingDates[] = $dateStr;
-                        }
-                    }
-                }
-            @endphp
 
             @if(($startDate ?? null) && ($endDate ?? null))
                 <div class="border rounded-lg p-4">
@@ -367,6 +317,14 @@
                         <div class="box p-3 rounded-md border border-foreground/10 bg-foreground/5">
                             <div class="text-sm opacity-70">Total Late Minutes</div>
                             <div class="text-2xl font-semibold mt-1">{{ number_format($totalLateMinutes) }}</div>
+                        </div>
+                        <div class="box p-3 rounded-md border border-foreground/10 bg-foreground/5">
+                            <div class="text-sm opacity-70">Total Undertime Minutes</div>
+                            <div class="text-2xl font-semibold mt-1">{{ number_format($totalUndertimeMinutes) }}</div>
+                        </div>
+                        <div class="box p-3 rounded-md border border-foreground/10 bg-foreground/5">
+                            <div class="text-sm opacity-70">Total Overtime Minutes</div>
+                            <div class="text-2xl font-semibold mt-1">{{ number_format($totalOvertimeMinutes) }}</div>
                         </div>
                     </div>
                 </div>
@@ -680,6 +638,7 @@
                         <tr><td class="p-2">Biometric Days Logged</td><td class="p-2 text-right">{{ number_format($processedSummary['worked_days'] ?? 0, 0) }}</td></tr>
                         <tr><td class="p-2">Equivalent Paid Days</td><td class="p-2 text-right">{{ number_format($processedSummary['equivalent_days'] ?? 0, 2) }}</td></tr>
                         <tr><td class="p-2">Undertime Minutes</td><td class="p-2 text-right">{{ number_format($processedSummary['total_undertime_minutes'] ?? 0) }}</td></tr>
+                        <tr><td class="p-2">Overtime Minutes</td><td class="p-2 text-right">{{ number_format($processedSummary['total_overtime_minutes'] ?? 0) }}</td></tr>
                         <tr><td class="p-2">Late Minutes</td><td class="p-2 text-right">{{ $processedSummary['late_minutes'] ?? 0 }}</td></tr>
                         <tr><td class="p-2">Late Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['late_amount'] ?? 0, 2) }}</td></tr>
                         <tr><td class="p-2">Late Rate / Minute</td><td class="p-2 text-right">₱{{ number_format($processedSummary['late_rate_per_minute'] ?? 0, 2) }}</td></tr>
