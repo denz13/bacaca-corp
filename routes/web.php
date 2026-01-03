@@ -42,6 +42,7 @@ Route::get('/pdf/candidates-list', [PdfController::class, 'candidatesList'])->na
 Route::get('/pdf/candidates-election', [PdfController::class, 'candidatesElection'])->name('pdf.candidates-election');
 Route::get('/pdf/students-account', [PdfController::class, 'studentsAccount'])->name('pdf.students-account');
 Route::get('/pdf/admin-account', [PdfController::class, 'adminAccount'])->name('pdf.admin-account');
+Route::get('/payroll/payslip/{id}/download', [App\Http\Controllers\PayrollController::class, 'downloadPayslip'])->name('payroll.payslip.download');
 
 Route::get('/dashboard', function() {
     return view('dashboard.index-dashboard');

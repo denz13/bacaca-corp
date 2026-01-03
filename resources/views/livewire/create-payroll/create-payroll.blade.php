@@ -219,16 +219,25 @@
                                                     <span class="whitespace-nowrap">{{ $user->position ?? '-' }}</span>
                                                 </td>
                                                 <td class="shadow-[3px_3px_5px_#0000000b] first:rounded-l-xl last:rounded-r-xl box rounded-none p-4 align-middle [&amp;:has([role=checkbox])]:pr-0 border-y border-foreground/10 bg-background first:border-l last:border-r">
-                                                    <div class="flex items-center justify-center">
-                                                        <button wire:click="openProcessPayrollModal({{ $user->id }}, '{{ $user->firstname }} {{ $user->lastname }}')" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 bg-(--color)/20 border-(--color)/60 text-(--color) hover:bg-(--color)/5 [--color:var(--color-primary)] h-9 rounded-md px-3 min-w-32" type="button">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" class="lucide lucide-wallet size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25">
-                                                                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
-                                                                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
-                                                                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
-                                                            </svg>
-                                                            Process Payroll
-                                                        </button>
-                                                    </div>
+                                                        <div class="flex items-center justify-center gap-2">
+                                                            @if($user->existing_payroll_id)
+                                                                <button wire:click="viewPayslip({{ $user->existing_payroll_id }})" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 bg-success/20 border-success/60 text-success hover:bg-success/5 h-9 rounded-md px-3 min-w-32" type="button">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                                                                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                                                                    </svg>
+                                                                    View Payslip
+                                                                </button>
+                                                            @endif
+                                                            <button wire:click="openProcessPayrollModal({{ $user->id }}, '{{ $user->firstname }} {{ $user->lastname }}')" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 bg-(--color)/20 border-(--color)/60 text-(--color) hover:bg-(--color)/5 [--color:var(--color-primary)] h-9 rounded-md px-3 min-w-32" type="button">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" class="lucide lucide-wallet size-4 stroke-[1.5] [--color:currentColor] stroke-(--color) fill-(--color)/25">
+                                                                    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                                                                    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                                                                    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                                                                </svg>
+                                                                Process Payroll
+                                                            </button>
+                                                        </div>
                                                 </td>
                                             </tr>
                                             
@@ -643,18 +652,173 @@
                         <tr><td class="p-2">Late Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['late_amount'] ?? 0, 2) }}</td></tr>
                         <tr><td class="p-2">Late Rate / Minute</td><td class="p-2 text-right">₱{{ number_format($processedSummary['late_rate_per_minute'] ?? 0, 2) }}</td></tr>
                         <tr><td class="p-2">Manual Earnings</td><td class="p-2 text-right">₱{{ number_format($processedSummary['manual_earnings'] ?? 0, 2) }}</td></tr>
-                        <tr>
-                            <td class="p-2">Holiday Earnings ({{ $processedSummary['holiday_days'] ?? 0 }} {{ ($processedSummary['holiday_days'] ?? 0) === 1 ? 'day' : 'days' }})</td>
-                            <td class="p-2 text-right">₱{{ number_format($processedSummary['holiday_earnings'] ?? 0, 2) }}</td>
-                        </tr>
-                        <tr><td class="p-2">Total Additional Pay</td><td class="p-2 text-right">₱{{ number_format($processedSummary['total_earnings'] ?? 0, 2) }}</td></tr>
-                        <tr class="font-medium"><td class="p-2">Net Amount</td><td class="p-2 text-right">₱{{ number_format($processedSummary['net'] ?? 0, 2) }}</td></tr>
-                    </tbody>
-                </table>
+                         <tr>
+                             <td class="p-2">Holiday Earnings ({{ $processedSummary['holiday_days'] ?? 0 }} {{ ($processedSummary['holiday_days'] ?? 0) === 1 ? 'day' : 'days' }})</td>
+                             <td class="p-2 text-right">₱{{ number_format($processedSummary['holiday_earnings'] ?? 0, 2) }}</td>
+                         </tr>
+                         <tr class="border-t font-bold">
+                             <td class="p-2 text-lg">Net Pay</td>
+                             <td class="p-2 text-right text-lg text-primary">₱{{ number_format($processedSummary['net'] ?? 0, 2) }}</td>
+                         </tr>
+                     </tbody>
+                 </table>
+             </div>
+         </div>
+         <x-slot:footer>
+             <button wire:click="$set('showSuccessModal', false)" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground hover:bg-foreground/5 bg-background border-foreground/20 h-10 px-4 py-2 w-full">OK</button>
+         </x-slot:footer>
+     </x-menu.modal>
+
+    <!-- Payslip Modal -->
+    <x-menu.modal :showButton="false" modalId="payslip-modal" title="Payslip Details" description="View detailed payslip information" size="lg" :isOpen="$showPayslipModal">
+        @if(!empty($payslipData))
+            <div class="space-y-6">
+                <!-- Header -->
+                <div class="text-center border-b pb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Bacaca Corp</h2>
+                    <p class="text-gray-600 dark:text-gray-400">Payroll Statement</p>
+                    <p class="text-sm text-gray-500 mt-2">Period: {{ $payslipData['payroll']->period ?? 'N/A' }}</p>
+                </div>
+
+                <!-- Employee Info -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Employee Information</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            {{ ($payslipData['employee']->firstname ?? '') . ' ' . ($payslipData['employee']->lastname ?? '') }}
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Position ID: {{ $payslipData['employee']->position ?? 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Pay Date</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($payslipData['payroll']->created_at ?? now())->format('M d, Y') }}</p>
+                    </div>
+                </div>
+
+                <!-- Earnings -->
+                @if($payslipData['earnings'] && count($payslipData['earnings']) > 0)
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Earnings</h3>
+                        <div class="space-y-2">
+                            @foreach($payslipData['earnings'] as $earning)
+                                <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">{{ $earning->description }}</span>
+                                    <span class="font-medium text-green-600">₱{{ number_format($earning->amount, 2) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Deductions -->
+                @if($payslipData['deductions'] && count($payslipData['deductions']) > 0)
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Deductions</h3>
+                        <div class="space-y-2">
+                            @foreach($payslipData['deductions'] as $deduction)
+                                <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">{{ $deduction->description }}</span>
+                                    <span class="font-medium text-red-600">₱{{ number_format($deduction->amount, 2) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Late Deduction -->
+                @if($payslipData['lateInfo'] && $payslipData['lateInfo']->amount > 0)
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Late Deduction</h3>
+                        <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Late Minutes: {{ $payslipData['lateInfo']->late ?? 0 }}</span>
+                            <span class="font-medium text-red-600">₱{{ number_format($payslipData['lateInfo']->amount, 2) }}</span>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Summary -->
+                <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Basic Pay:</span>
+                            <span class="font-medium text-gray-900 dark:text-white">₱{{ number_format($payslipData['payroll']->partial ?? 0, 2) }}</span>
+                        </div>
+                        
+                        @if($payslipData['earnings'] && count($payslipData['earnings']) > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Total Earnings:</span>
+                                <span class="font-medium text-green-600">₱{{ number_format($payslipData['earnings']->sum('amount'), 2) }}</span>
+                            </div>
+                        @endif
+
+                        @if($payslipData['deductions'] && count($payslipData['deductions']) > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Total Deductions:</span>
+                                <span class="font-medium text-red-600">₱{{ number_format($payslipData['deductions']->sum('amount'), 2) }}</span>
+                            </div>
+                        @endif
+
+                        @if($payslipData['lateInfo'] && $payslipData['lateInfo']->amount > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Late Deduction:</span>
+                                <span class="font-medium text-red-600">₱{{ number_format($payslipData['lateInfo']->amount, 2) }}</span>
+                            </div>
+                        @endif
+
+                        <div class="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-semibold text-gray-900 dark:text-white">Net Pay:</span>
+                                <span class="text-xl font-bold text-blue-600">₱{{ number_format($payslipData['finalPayroll']->net ?? 0, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if(isset($payslipData['summaryExtras']))
+                        <div class="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <div class="flex justify-between">
+                                <span>No. of Working Days (Biometric):</span>
+                                <span class="font-medium text-gray-900 dark:text-white">
+                                    {{ number_format(data_get($payslipData['summaryExtras'], 'worked_days', 0), 0) }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Equivalent Paid Days:</span>
+                                <span class="font-medium text-gray-900 dark:text-white">
+                                    {{ number_format(data_get($payslipData['summaryExtras'], 'equivalent_days', 0), 2) }}
+                                </span>
+                            </div>
+                            @if(data_get($payslipData['summaryExtras'], 'total_undertime_minutes', 0) > 0)
+                                <div class="flex justify-between">
+                                    <span>Total Undertime Minutes:</span>
+                                    <span class="font-medium text-gray-900 dark:text-white">
+                                        {{ number_format(data_get($payslipData['summaryExtras'], 'total_undertime_minutes', 0)) }}
+                                    </span>
+                                </div>
+                            @endif
+                            @if(data_get($payslipData['summaryExtras'], 'total_overtime_minutes', 0) > 0)
+                                <div class="flex justify-between">
+                                    <span>Total Overtime Minutes:</span>
+                                    <span class="font-medium text-gray-900 dark:text-white">
+                                        {{ number_format(data_get($payslipData['summaryExtras'], 'total_overtime_minutes', 0)) }}
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+                </div>
             </div>
-        </div>
+        @endif
+
         <x-slot:footer>
-            <button wire:click="$set('showSuccessModal', false)" data-tw-dismiss="modal" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground hover:bg-foreground/5 bg-background border-foreground/20 h-10 px-4 py-2 w-24">Close</button>
+            <div class="flex justify-end gap-2 w-full">
+                <a href="{{ $selectedPayrollId ? route('payroll.payslip.download', $selectedPayrollId) : '#' }}" 
+                   target="_blank"
+                   class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 flex-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    Print Payslip
+                </a>
+                <button wire:click="closePayslipModal" type="button" class="cursor-pointer inline-flex border items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground hover:bg-foreground/5 bg-background border-foreground/20 h-10 px-4 py-2 flex-1">Close</button>
+            </div>
         </x-slot:footer>
     </x-menu.modal>
  

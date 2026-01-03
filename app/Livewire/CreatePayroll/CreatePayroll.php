@@ -59,6 +59,11 @@ class CreatePayroll extends Component
     public int $totalOvertimeMinutes = 0;
     public array $missingDates = [];
 
+    // Payslip Modal
+    public bool $showPayslipModal = false;
+    public ?int $selectedPayrollId = null;
+    public array $payslipData = [];
+
     public function updatedStartDate(): void
     {
         $this->resetHolidayData();
@@ -227,6 +232,121 @@ class CreatePayroll extends Component
         }
 
         $this->holidayWorkSelections[$date] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function viewPayslip(int $payrollId): void
+    {
+        $this->selectedPayrollId = $payrollId;
+        $this->loadPayslipData();
+        $this->showPayslipModal = true;
+    }
+
+    public function closePayslipModal(): void
+    {
+        $this->showPayslipModal = false;
+        $this->selectedPayrollId = null;
+        $this->payslipData = [];
+    }
+
+    private function loadPayslipData(): void
+    {
+        // Get main payroll data
+        $this->payslipData['payroll'] = DB::table('process_payroll')
+            ->where('id', $this->selectedPayrollId)
+            ->first();
+
+        if (!$this->payslipData['payroll']) {
+            $this->closePayslipModal();
+            $this->dispatchBrowserEvent('notification', [
+                'type' => 'error',
+                'message' => 'Payslip not found',
+            ]);
+            return;
+        }
+
+        $userId = $this->payslipData['payroll']->empid;
+        $employee = tbl_employee_info::find($userId);
+
+        $this->payslipData['employee'] = $employee;
+
+        // Get deductions
+        $this->payslipData['deductions'] = DB::table('deductions')
+            ->join('payroll_deduction', 'deductions.deductionid', '=', 'payroll_deduction.id')
+            ->where('deductions.payrollid', $this->selectedPayrollId)
+            ->select('payroll_deduction.description', 'payroll_deduction.amount')
+            ->get();
+
+        // Get earnings
+        $this->payslipData['earnings'] = DB::table('earnings_p')
+            ->join('earnings', 'earnings_p.earnings_id', '=', 'earnings.id')
+            ->where('earnings_p.payroll_id', $this->selectedPayrollId)
+            ->select('earnings.earnings as description', 'earnings_p.amount')
+            ->get();
+
+        // Get late information
+        $this->payslipData['lateInfo'] = DB::table('late')
+            ->where('payrollidd', $this->selectedPayrollId)
+            ->first();
+
+        // Get final payroll
+        $this->payslipData['finalPayroll'] = DB::table('f_payroll')
+            ->where('p_id', $this->selectedPayrollId)
+            ->first();
+
+        $this->payslipData['summaryExtras'] = $this->buildSummaryExtras($this->payslipData['payroll'], $userId);
+    }
+
+    private function buildSummaryExtras($payrollRow, int $userId): ?array
+    {
+        if (!$payrollRow || empty($payrollRow->period)) {
+            return null;
+        }
+
+        $periodParts = explode(' - ', $payrollRow->period);
+        if (count($periodParts) < 2) {
+            return null;
+        }
+
+        try {
+            $start = Carbon::parse(trim($periodParts[0]))->startOfDay();
+            $end = Carbon::parse(trim(end($periodParts)))->endOfDay();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $attendance = Attendance::where('users_id', $userId)
+            ->whereBetween('timestamp', [$start, $end])
+            ->get();
+
+        if ($attendance->isEmpty()) {
+            return null;
+        }
+
+        $workedDays = $attendance
+            ->map(fn ($row) => Carbon::parse($row->timestamp)->toDateString())
+            ->unique()
+            ->count();
+
+        $totalUndertimeMinutes = (int) $attendance->sum(function ($row) {
+            return (int) ($row->undertime_minutes ?? 0);
+        });
+
+        $totalOvertimeMinutes = (int) $attendance->sum(function ($row) {
+            return (int) ($row->overtime_minutes ?? 0);
+        });
+
+        $potentialWorkMinutes = $workedDays * 8 * 60;
+        $earnedMinutes = max(0, $potentialWorkMinutes - $totalUndertimeMinutes);
+        $equivalentDays = $potentialWorkMinutes > 0
+            ? round($earnedMinutes / (8 * 60), 2)
+            : 0.0;
+
+        return [
+            'worked_days' => $workedDays,
+            'equivalent_days' => $equivalentDays,
+            'total_undertime_minutes' => $totalUndertimeMinutes,
+            'total_overtime_minutes' => $totalOvertimeMinutes,
+        ];
     }
 
     public function processPayroll(): void
@@ -438,7 +558,21 @@ class CreatePayroll extends Component
                 });
             }
 
-            $users = $usersQuery->orderBy('firstname')->paginate($perPage);
+            $usersData = $usersQuery->orderBy('firstname')->paginate($perPage);
+            
+            // Check for existing payrolls for these users in this period
+            $periodStr = Carbon::parse($this->startDate)->toDateString() . ' - ' . Carbon::parse($this->endDate)->toDateString();
+            $existingPayrolls = DB::table('process_payroll')
+                ->whereIn('empid', $usersData->pluck('id'))
+                ->where('period', $periodStr)
+                ->pluck('id', 'empid');
+
+            $usersData->getCollection()->transform(function ($user) use ($existingPayrolls) {
+                $user->existing_payroll_id = $existingPayrolls[$user->id] ?? null;
+                return $user;
+            });
+
+            $users = $usersData;
         }
 
         // Get all deductions for the dropdown
